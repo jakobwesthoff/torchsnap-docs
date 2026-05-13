@@ -310,3 +310,28 @@ kbd {
   --sl-badge-success-border: var(--sl-color-green);
   --sl-badge-success-text: var(--sl-color-green-high);
 }
+
+/* --- Search modal ---------------------------------------- */
+dialog {
+  background-color: var(--sl-color-black) !important;
+  border-color: var(--sl-color-gray-5) !important;
+}
+
+#starlight__search input:focus {
+  --pagefind-ui-border: var(--sl-color-gray-4) !important;
+  outline: 2px solid var(--sl-color-accent) !important;
+  outline-offset: -2px;
+}
+
+#starlight__search {
+  --pagefind-ui-background: var(--sl-color-black) !important;
+  --pagefind-ui-border-width: 1px !important;
+}
+
+#starlight__search .pagefind-ui__result {
+  border-color: var(--sl-color-gray-5) !important;
+}
+
+button[data-close-modal] {
+  color: var(--sl-color-accent) !important;
+}
