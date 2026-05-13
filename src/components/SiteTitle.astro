@@ -12,7 +12,7 @@ const { siteTitle, siteTitleHref } = Astro.locals.starlightRoute;
 				class:list={{ 'light:sl-hidden print:hidden': !('src' in config.logo) }}
 				alt={config.logo.alt ?? ''}
 				src={logos.dark}
-				height={32}
+				height={26}
 				densities={[1, 2, 3]}
 				loading="eager"
 			/>
@@ -39,9 +39,9 @@ const { siteTitle, siteTitleHref } = Astro.locals.starlightRoute;
 			overflow: hidden;
 		}
 		img {
-			height: calc(var(--sl-nav-height) - 2 * var(--sl-nav-pad-y));
+			height: auto;
 			width: auto;
-			max-width: 100%;
+			max-height: 26px;
 			object-fit: contain;
 			object-position: 0 50%;
 		}

@@ -10,7 +10,7 @@ const { title = data.title, tagline, image, actions = [] } = data.hero || {};
 const imageAttrs = {
 	loading: 'eager' as const,
 	decoding: 'async' as const,
-	width: 400,
+	width: 192,
 	densities: [1, 2] as const,
 	alt: image?.alt || '',
 };
@@ -70,16 +70,18 @@ if (image) {
 			display: flex;
 			flex-direction: column;
 			align-items: center;
-			gap: 1rem;
-			padding-bottom: 1rem;
+			gap: 2.5rem;
+			padding: 1rem 1.5rem;
 		}
 
 		.hero > img,
 		.hero > .hero-html {
 			object-fit: contain;
-			width: min(70%, 20rem);
+			width: 192px;
+			min-width: 192px;
 			height: auto;
 			margin-inline: auto;
+			flex-shrink: 0;
 		}
 
 		.stack {
@@ -95,7 +97,7 @@ if (image) {
 		}
 
 		.copy > :global(h1) {
-			font-size: clamp(var(--sl-text-3xl), calc(0.25rem + 5vw), var(--sl-text-6xl));
+			font-size: var(--sl-text-5xl);
 			line-height: var(--sl-line-height-headings);
 			font-weight: 600;
 			color: var(--sl-color-white);
@@ -115,15 +117,17 @@ if (image) {
 		@media (min-width: 50rem) {
 			.hero {
 				display: grid;
-				grid-template-columns: 7fr 4fr;
-				gap: 3%;
-				padding-block: clamp(2.5rem, calc(1rem + 10vmin), 10rem);
+				grid-template-columns: auto auto;
+				justify-content: center;
+				align-items: center;
+				gap: 5rem;
+				padding: clamp(2.5rem, calc(1rem + 10vmin), 10rem) 8rem;
 			}
 
 			.hero > img,
 			.hero > .hero-html {
 				order: 2;
-				width: min(100%, 25rem);
+				width: 192px;
 			}
 
 			.stack {
