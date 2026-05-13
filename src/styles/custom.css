@@ -135,6 +135,27 @@ body {
   --sl-color-hairline: #2c2c2e;
   --sl-color-hairline-light: #3a3a3c;
   --sl-color-hairline-shade: #1c1c1e;
+
+  /* Semantic colors: note (blue), tip (purple/green), caution (orange), danger (red) */
+  --sl-color-blue-low: hsl(215, 20%, 16%);
+  --sl-color-blue: hsl(215, 50%, 55%);
+  --sl-color-blue-high: hsl(215, 55%, 75%);
+
+  --sl-color-purple-low: hsl(160, 18%, 16%);
+  --sl-color-purple: hsl(160, 40%, 50%);
+  --sl-color-purple-high: hsl(160, 45%, 72%);
+
+  --sl-color-orange-low: hsl(25, 25%, 16%);
+  --sl-color-orange: hsl(25, 80%, 55%);
+  --sl-color-orange-high: hsl(25, 75%, 75%);
+
+  --sl-color-red-low: hsl(0, 22%, 16%);
+  --sl-color-red: hsl(0, 55%, 55%);
+  --sl-color-red-high: hsl(0, 55%, 75%);
+
+  --sl-color-green-low: hsl(145, 18%, 16%);
+  --sl-color-green: hsl(145, 40%, 48%);
+  --sl-color-green-high: hsl(145, 42%, 70%);
 }
 
 /* --- Light mode ------------------------------------------ */
@@ -159,10 +180,56 @@ body {
   --sl-color-hairline: #e5e7eb;
   --sl-color-hairline-light: #f3f4f6;
   --sl-color-hairline-shade: #e5e7eb;
+
+  --sl-color-blue-low: hsl(215, 30%, 93%);
+  --sl-color-blue: hsl(215, 50%, 55%);
+  --sl-color-blue-high: hsl(215, 45%, 42%);
+
+  --sl-color-purple-low: hsl(160, 25%, 92%);
+  --sl-color-purple: hsl(160, 40%, 42%);
+  --sl-color-purple-high: hsl(160, 38%, 36%);
+
+  --sl-color-orange-low: hsl(25, 40%, 92%);
+  --sl-color-orange: hsl(25, 80%, 50%);
+  --sl-color-orange-high: hsl(25, 70%, 42%);
+
+  --sl-color-red-low: hsl(0, 30%, 93%);
+  --sl-color-red: hsl(0, 55%, 50%);
+  --sl-color-red-high: hsl(0, 45%, 42%);
+
+  --sl-color-green-low: hsl(145, 25%, 92%);
+  --sl-color-green: hsl(145, 40%, 40%);
+  --sl-color-green-high: hsl(145, 38%, 36%);
 }
 
 /* --- Component overrides --------------------------------- */
 .sl-link-card:hover,
 .pagination-links a:hover {
   border-color: var(--sl-color-accent) !important;
+}
+
+:root[data-theme="light"] {
+  --sl-badge-default-bg: var(--sl-color-accent-low);
+  --sl-badge-default-border: var(--sl-color-accent);
+  --sl-badge-default-text: var(--sl-color-accent-high);
+
+  --sl-badge-note-bg: var(--sl-color-blue-low);
+  --sl-badge-note-border: var(--sl-color-blue);
+  --sl-badge-note-text: var(--sl-color-blue-high);
+
+  --sl-badge-tip-bg: var(--sl-color-purple-low);
+  --sl-badge-tip-border: var(--sl-color-purple);
+  --sl-badge-tip-text: var(--sl-color-purple-high);
+
+  --sl-badge-caution-bg: var(--sl-color-orange-low);
+  --sl-badge-caution-border: var(--sl-color-orange);
+  --sl-badge-caution-text: var(--sl-color-orange-high);
+
+  --sl-badge-danger-bg: var(--sl-color-red-low);
+  --sl-badge-danger-border: var(--sl-color-red);
+  --sl-badge-danger-text: var(--sl-color-red-high);
+
+  --sl-badge-success-bg: var(--sl-color-green-low);
+  --sl-badge-success-border: var(--sl-color-green);
+  --sl-badge-success-text: var(--sl-color-green-high);
 }
