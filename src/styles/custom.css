@@ -203,6 +203,8 @@ body {
 }
 
 /* --- Component overrides --------------------------------- */
+
+/* 1. Page title in accent */
 h1 {
   color: var(--sl-color-accent-high) !important;
 }
@@ -211,6 +213,73 @@ h1 {
   color: var(--sl-color-accent) !important;
 }
 
+/* 2. Subheadings: slightly muted to let h1 stand out */
+.sl-markdown-content :is(h2, h3, h4, h5, h6):not(:where(.not-content *)) {
+  color: var(--sl-color-gray-2) !important;
+}
+
+/* 3. Inline code: more visible background in dark, subtle in light */
+:root .sl-markdown-content code:not(pre code):not(:where(.not-content *)) {
+  background-color: var(--sl-color-gray-5) !important;
+}
+
+:root[data-theme="light"] .sl-markdown-content code:not(pre code):not(:where(.not-content *)) {
+  background-color: var(--sl-color-gray-6) !important;
+}
+
+/* 4. Keycap styling */
+kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5em;
+  padding: 0.1em 0.45em;
+  font-family: var(--__sl-font-mono);
+  font-size: 0.85em;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--sl-color-white);
+  background-color: var(--sl-color-gray-6);
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 4px;
+  box-shadow: inset 0 -1px 0 var(--sl-color-gray-5);
+}
+
+/* 5. Table header contrast */
+.sl-markdown-content th:not(:where(.not-content *)) {
+  border-bottom-width: 2px !important;
+  border-bottom-color: var(--sl-color-gray-4) !important;
+}
+
+/* 6. Blockquote accent border */
+.sl-markdown-content blockquote:not(:where(.not-content *)) {
+  border-inline-start: 3px solid var(--sl-color-accent) !important;
+  padding-inline-start: 1rem;
+}
+
+/* 7. Steps number circles in accent */
+.sl-steps > li::before {
+  background-color: var(--sl-color-accent) !important;
+  box-shadow: none !important;
+  color: #ffffff !important;
+}
+
+.sl-steps > li::after {
+  background-color: var(--sl-color-accent) !important;
+  opacity: 0.25;
+}
+
+:root[data-theme="light"] .sl-steps > li::after {
+  opacity: 0.2;
+}
+
+/* Sidebar active item: white text on accent background */
+.sidebar-content [aria-current="page"] {
+  background-color: var(--sl-color-accent) !important;
+  color: #ffffff !important;
+}
+
+/* 8. Link card and pagination hover borders */
 .sl-link-card:hover,
 .pagination-links a:hover {
   border-color: var(--sl-color-accent) !important;
