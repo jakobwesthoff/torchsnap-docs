@@ -1,0 +1,162 @@
+@import "tailwindcss" layer(tailwind);
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@layer tailwind {
+  @theme {
+    --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system,
+      BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+      "Liberation Mono", "Courier New", monospace;
+
+    /* --- Text ------------------------------------------------ */
+    --color-text-primary: var(--color-gray-800);
+    --color-text-secondary: var(--color-gray-600);
+    --color-text-tertiary: var(--color-gray-500);
+    --color-text-muted: var(--color-gray-400);
+    --color-text-label: var(--color-gray-700);
+
+    /* --- Surfaces -------------------------------------------- */
+    --color-surface: var(--color-white);
+    --color-surface-inset: var(--color-gray-50);
+    --color-surface-sidebar: #f8f5ef;
+    --color-surface-group: #faf8f3;
+    --color-surface-hover: var(--color-gray-50);
+    --color-surface-active: var(--color-gray-100);
+
+    /* --- Borders --------------------------------------------- */
+    --color-border: var(--color-gray-200);
+    --color-border-input: var(--color-gray-300);
+    --color-border-divider: var(--color-gray-100);
+    --color-border-hover: var(--color-gray-300);
+
+    /* --- Accent ---------------------------------------------- */
+    --color-accent: var(--color-orange-500);
+    --color-accent-hover: var(--color-orange-600);
+    --color-accent-muted: var(--color-orange-400);
+
+    /* --- Selection ------------------------------------------- */
+    --color-selection: color-mix(in srgb, var(--color-accent) 10%, transparent);
+
+    /* --- Shadows --------------------------------------------- */
+    --shadow-card-sm:
+      0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-card:
+      0 2px 8px rgba(0, 0, 0, 0.06),
+      0 1px 2px rgba(0, 0, 0, 0.04);
+
+    /* --- Radii ----------------------------------------------- */
+    --radius-xs: 4px;
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    --radius-pill: 9999px;
+  }
+}
+
+/* --- Dark mode Tailwind token overrides -------------------- */
+@layer tailwind {
+  [data-theme="dark"] {
+    --color-text-primary: rgb(255 255 255);
+    --color-text-secondary: rgb(255 255 255 / 0.7);
+    --color-text-label: rgb(255 255 255 / 0.8);
+    --color-text-tertiary: rgb(255 255 255 / 0.5);
+    --color-text-muted: rgb(255 255 255 / 0.4);
+
+    --color-surface: #1c1c1e;
+    --color-surface-inset: #2c2c2e;
+    --color-surface-sidebar: #222224;
+    --color-surface-group: #1f1f21;
+    --color-surface-hover: #2a2a2c;
+    --color-surface-active: #3a3a3c;
+
+    --color-border: #3a3a3c;
+    --color-border-input: #48484a;
+    --color-border-divider: #2c2c2e;
+    --color-border-hover: #545456;
+
+    --color-accent-muted: var(--color-orange-400);
+
+    --color-selection: #2a2a2c;
+
+    --shadow-card-sm:
+      0 1px 2px rgba(0, 0, 0, 0.25);
+    --shadow-card:
+      0 2px 8px rgba(0, 0, 0, 0.4),
+      0 1px 2px rgba(0, 0, 0, 0.25);
+  }
+}
+
+@font-face {
+  font-family: "Inter";
+  src: url("/fonts/Inter-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+body {
+  font-feature-settings: "cv11", "ss01", "ss03";
+}
+
+/* =========================================================
+ * Starlight Theme Overrides
+ *
+ * Maps the Torchsnap design tokens onto Starlight's --sl-*
+ * custom properties. Starlight's naming is inverted relative
+ * to typical usage:
+ *   --sl-color-white  = darkest text color
+ *   --sl-color-black  = page background
+ *   gray-1..gray-7    = dark-to-light in dark mode
+ * ========================================================= */
+
+/* --- Dark mode (Starlight's default :root) --------------- */
+:root {
+  --sl-font: "Inter";
+
+  --sl-color-white: #ffffff;
+  --sl-color-gray-1: rgba(255, 255, 255, 0.8);
+  --sl-color-gray-2: rgba(255, 255, 255, 0.7);
+  --sl-color-gray-3: rgba(255, 255, 255, 0.5);
+  --sl-color-gray-4: rgba(255, 255, 255, 0.4);
+  --sl-color-gray-5: #3a3a3c;
+  --sl-color-gray-6: #2c2c2e;
+  --sl-color-gray-7: #222224;
+  --sl-color-black: #1c1c1e;
+
+  --sl-color-accent-low: #451a03;
+  --sl-color-accent: #ea580c;
+  --sl-color-accent-high: #f97316;
+
+  --sl-color-bg: var(--sl-color-black);
+  --sl-color-bg-nav: #222224;
+  --sl-color-bg-sidebar: #1f1f21;
+  --sl-color-hairline: #2c2c2e;
+  --sl-color-hairline-light: #3a3a3c;
+  --sl-color-hairline-shade: #1c1c1e;
+}
+
+/* --- Light mode ------------------------------------------ */
+:root[data-theme="light"],
+[data-theme="light"] ::backdrop {
+  --sl-color-white: #1f2937;
+  --sl-color-gray-1: #374151;
+  --sl-color-gray-2: #4b5563;
+  --sl-color-gray-3: #6b7280;
+  --sl-color-gray-4: #9ca3af;
+  --sl-color-gray-5: #d1d5db;
+  --sl-color-gray-6: #f3f4f6;
+  --sl-color-gray-7: #f9fafb;
+  --sl-color-black: #ffffff;
+
+  --sl-color-accent-low: #fff7ed;
+  --sl-color-accent: #ea580c;
+  --sl-color-accent-high: #9a3412;
+
+  --sl-color-bg-nav: #faf8f3;
+  --sl-color-bg-sidebar: #f8f5ef;
+  --sl-color-hairline: #e5e7eb;
+  --sl-color-hairline-light: #f3f4f6;
+  --sl-color-hairline-shade: #e5e7eb;
+}

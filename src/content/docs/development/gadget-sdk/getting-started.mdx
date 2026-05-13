@@ -1,0 +1,146 @@
+---
+title: Getting Started
+description: Build your first Torchsnap gadget.
+sidebar:
+  order: 1
+---
+
+TODO: Gadget SDK getting started guide.
+
+---
+
+## Code Block Previews
+
+The following examples are temporary and exist solely to verify syntax highlighting across languages.
+
+### Rust
+
+```rust title="src/lib.rs"
+use gadget_sdk::prelude::*;
+
+#[derive(Debug, Clone)]
+pub struct Calculator {
+    history: Vec<String>,
+}
+
+impl Gadget for Calculator {
+    fn search(&self, query: &str) -> Vec<SearchResult> {
+        let result = match evaluate(query) {
+            Ok(value) => value,
+            Err(_) => return vec![],
+        };
+
+        vec![SearchResult {
+            title: format!("{result}"),
+            subtitle: Some(format!("{query} = {result}")),
+            icon: Icon::named("calculator"),
+            action: Action::copy(result.to_string()),
+        }]
+    }
+}
+
+fn evaluate(expr: &str) -> anyhow::Result<f64> {
+    // Recursive descent parser for basic arithmetic
+    let tokens: Vec<char> = expr.chars().filter(|c| !c.is_whitespace()).collect();
+    let (result, _) = parse_expression(&tokens, 0)?;
+    Ok(result)
+}
+```
+
+### TypeScript
+
+```typescript title="src/launcher/search.ts"
+interface SearchResult {
+  title: string;
+  subtitle?: string;
+  icon: string;
+  score: number;
+}
+
+async function queryGadgets(
+  input: string,
+  gadgets: Map<string, GadgetHandle>,
+): Promise<SearchResult[]> {
+  const results = await Promise.all(
+    [...gadgets.values()].map(async (gadget) => {
+      try {
+        return await gadget.search(input);
+      } catch (err) {
+        console.error(`Gadget ${gadget.id} failed:`, err);
+        return [];
+      }
+    }),
+  );
+
+  return results
+    .flat()
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 20);
+}
+
+export type { SearchResult };
+```
+
+### TOML
+
+```toml title="gadget.toml"
+[gadget]
+id = "com.example.calculator"
+name = "Calculator"
+version = "0.1.0"
+description = "Evaluate math expressions inline"
+
+[search]
+mode = "query"
+debounce_ms = 50
+
+[permissions]
+clipboard = "write"
+```
+
+### Shell
+
+```bash title="Building a gadget"
+# Build the gadget for the WASM target
+cargo build --target wasm32-wasip2 --release
+
+# Package into a .torchsnap archive
+torchsnap gadget pack \
+  --manifest gadget.toml \
+  --wasm target/wasm32-wasip2/release/calculator.wasm \
+  --output calculator.torchsnap
+```
+
+### JSON
+
+```json title="settings.json"
+{
+  "launcher": {
+    "hotkey": "Option+Space",
+    "max_results": 12,
+    "theme": "system"
+  },
+  "gadgets": {
+    "com.example.calculator": {
+      "enabled": true,
+      "prefix": "="
+    }
+  }
+}
+```
+
+### CSS
+
+```css title="theme.css"
+@theme {
+  --color-accent: var(--color-orange-500);
+  --color-accent-hover: var(--color-orange-600);
+  --color-surface-sidebar: #f8f5ef;
+}
+
+[data-theme="dark"] {
+  --color-surface: #1c1c1e;
+  --color-surface-sidebar: #222224;
+  --color-border: #3a3a3c;
+}
+```
