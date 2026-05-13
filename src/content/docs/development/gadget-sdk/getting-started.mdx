@@ -5,7 +5,198 @@ sidebar:
   order: 1
 ---
 
+import { Aside, Card, CardGrid, FileTree, LinkCard, Steps, Tabs, TabItem, Badge } from '@astrojs/starlight/components';
+
 TODO: Gadget SDK getting started guide.
+
+---
+
+## Component & Element Previews
+
+The following examples are temporary and exist solely to verify styling across all documentation elements.
+
+### Asides
+
+:::note
+Gadgets run in a **sandboxed WebAssembly** environment. They cannot access the host filesystem or network unless explicitly granted permission via the manifest.
+:::
+
+:::tip
+Use `cargo build --target wasm32-wasip2 --release` for optimized builds. Debug builds work but are significantly larger.
+:::
+
+:::caution
+Changing a gadget's `id` in the manifest will cause Torchsnap to treat it as a new gadget, losing all stored settings and frecency data.
+:::
+
+:::danger
+Never grant `shell.execute` permission to untrusted gadgets. This capability allows arbitrary command execution on the host system.
+:::
+
+### Inline Code & Keyboard Shortcuts
+
+Configure your activation hotkey in `~/.config/torchsnap/settings.json`. The default is <kbd>Option</kbd> + <kbd>Space</kbd>.
+
+Use the `gadget-sdk` crate's `prelude` module to import all common types: `use gadget_sdk::prelude::*;`. The `SearchResult` struct requires a `title: String` and an `action: Action`.
+
+Press <kbd>Cmd</kbd> + <kbd>K</kbd> to open the command palette, <kbd>Esc</kbd> to dismiss, or <kbd>↵</kbd> to execute.
+
+### Links
+
+- [Gadget manifest reference](/development/gadget-sdk/manifest/) — all available fields
+- [Search modes](/development/gadget-sdk/search-modes/) — catalog, query, and prefix-routed
+- [Permissions](/development/gadget-sdk/permissions/) — host capabilities
+- [External link example](https://doc.rust-lang.org/book/) — The Rust Programming Language
+
+### Tables
+
+| Permission | Description | Risk Level |
+|---|---|---|
+| `clipboard.read` | Read clipboard contents | Low |
+| `clipboard.write` | Write to clipboard | Low |
+| `http.fetch` | Make outbound HTTP requests | Medium |
+| `fs.read` | Read files from specified paths | Medium |
+| `fs.write` | Write files to specified paths | High |
+| `shell.execute` | Run shell commands on the host | Critical |
+
+### Blockquote
+
+> Torchsnap's gadget system is designed around the principle of least privilege.
+> Every host capability requires explicit opt-in through the manifest, and users
+> are prompted before granting sensitive permissions.
+
+### Lists
+
+**Unordered:**
+
+- Catalog mode — fuzzy match against a finite, pre-built list
+  - App launcher uses this for installed applications
+  - Clipboard history uses this for recent entries
+- Query mode — every keystroke is forwarded to the gadget
+- Prefix-routed mode — a single character prefix routes exclusively
+  - `=` for calculator
+  - `!` for bangs
+
+**Ordered:**
+
+1. Create a new Rust project with `cargo init --lib`
+2. Add `gadget-sdk` as a dependency
+3. Implement the `Gadget` trait
+4. Write your `gadget.toml` manifest
+5. Build for `wasm32-wasip2`
+6. Package with `torchsnap gadget pack`
+
+### Badges
+
+<Badge text="Stable" variant="success" />
+<Badge text="Experimental" variant="caution" />
+<Badge text="Deprecated" variant="danger" />
+<Badge text="Default" variant="note" />
+
+### Steps
+
+<Steps>
+
+1. **Install the WASM target**
+
+   ```bash
+   rustup target add wasm32-wasip2
+   ```
+
+2. **Create a new gadget project**
+
+   ```bash
+   cargo init --lib my-gadget
+   cd my-gadget
+   cargo add gadget-sdk
+   ```
+
+3. **Implement the Gadget trait**
+
+   ```rust title="src/lib.rs"
+   use gadget_sdk::prelude::*;
+
+   pub struct MyGadget;
+
+   impl Gadget for MyGadget {
+       fn search(&self, query: &str) -> Vec<SearchResult> {
+           vec![]
+       }
+   }
+   ```
+
+4. **Build and package**
+
+   ```bash
+   cargo build --target wasm32-wasip2 --release
+   torchsnap gadget pack --manifest gadget.toml
+   ```
+
+</Steps>
+
+### Tabs
+
+<Tabs>
+  <TabItem label="macOS">
+    ```bash
+    brew install torchsnap
+    ```
+  </TabItem>
+  <TabItem label="From Source">
+    ```bash
+    git clone https://github.com/jakobwesthoff/torchsnap
+    cd torchsnap
+    just build-release
+    ```
+  </TabItem>
+</Tabs>
+
+### Cards
+
+<CardGrid>
+  <Card title="Catalog Search" icon="list-format">
+    Fuzzy-match against a finite, pre-built list of items. Best for app launchers and clipboard history.
+  </Card>
+  <Card title="Query Search" icon="magnifier">
+    Every keystroke is forwarded to the gadget's search function. Best for calculators and web searches.
+  </Card>
+  <Card title="Prefix Routing" icon="right-arrow">
+    A single character prefix routes input exclusively to one gadget. Best for bangs and quick commands.
+  </Card>
+  <Card title="Background Tasks" icon="setting">
+    Gadgets can declare cron-scheduled background tasks for periodic data refreshes.
+  </Card>
+</CardGrid>
+
+### Link Cards
+
+<LinkCard title="Manifest Reference" description="All available fields in gadget.toml" href="/development/gadget-sdk/manifest/" />
+<LinkCard title="Permissions Guide" description="Host capabilities and the permission model" href="/development/gadget-sdk/permissions/" />
+
+### File Tree
+
+<FileTree>
+- my-gadget/
+  - src/
+    - lib.rs
+  - Cargo.toml
+  - gadget.toml
+  - README.md
+</FileTree>
+
+### Details
+
+<details>
+<summary>Advanced: Custom icon resolution</summary>
+
+Gadgets can provide custom icons by including them in the `.torchsnap` archive. Icons are resolved in the following order:
+
+1. Inline `data:` URI in the `SearchResult.icon` field
+2. Named icon from the gadget's bundled asset directory
+3. System icon lookup by application bundle ID
+4. Default fallback icon
+
+</details>
 
 ---
 

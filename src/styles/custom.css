@@ -160,3 +160,9 @@ body {
   --sl-color-hairline-light: #f3f4f6;
   --sl-color-hairline-shade: #e5e7eb;
 }
+
+/* --- Component overrides --------------------------------- */
+.sl-link-card:hover,
+.pagination-links a:hover {
+  border-color: var(--sl-color-accent) !important;
+}
