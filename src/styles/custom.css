@@ -203,6 +203,14 @@ body {
 }
 
 /* --- Component overrides --------------------------------- */
+h1 {
+  color: var(--sl-color-accent-high) !important;
+}
+
+:root[data-theme="light"] h1 {
+  color: var(--sl-color-accent) !important;
+}
+
 .sl-link-card:hover,
 .pagination-links a:hover {
   border-color: var(--sl-color-accent) !important;
