@@ -43,6 +43,10 @@ export default defineConfig({
           href: "https://github.com/jakobwesthoff/torchsnap",
         },
       ],
+      components: {
+        SiteTitle: "./src/components/SiteTitle.astro",
+        Hero: "./src/components/Hero.astro",
+      },
       expressiveCode: {
         themes: [macchiato, latte],
         styleOverrides: {
