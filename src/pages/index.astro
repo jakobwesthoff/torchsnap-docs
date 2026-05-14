@@ -1,0 +1,74 @@
+---
+import { Image } from "astro:assets";
+import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
+import { LinkButton } from "@astrojs/starlight/components";
+import logo from "../assets/logo.png";
+---
+
+<StarlightPage
+  frontmatter={{
+    title: "Torchsnap",
+    description:
+      "Light. Find. Launch. — A keyboard-driven application launcher.",
+    template: "splash",
+    pagefind: false,
+    hero: { title: "", tagline: "" },
+  }}
+>
+  <div
+    class="not-content flex flex-col items-center gap-10 p-4 min-[50rem]:grid min-[50rem]:grid-cols-[auto_auto] min-[50rem]:justify-center min-[50rem]:items-center min-[50rem]:gap-20 min-[50rem]:px-32 min-[50rem]:py-[clamp(2.5rem,calc(1rem+10vmin),10rem)]"
+  >
+    <Image
+      src={logo}
+      alt=""
+      width={192}
+      densities={[1, 2]}
+      loading="eager"
+      decoding="async"
+      class="object-contain w-48 min-w-48 h-auto mx-auto shrink-0 min-[50rem]:order-2"
+    />
+    <div
+      class="flex flex-col gap-[clamp(1.5rem,calc(1.5rem+1vw),2rem)] text-center min-[50rem]:text-start"
+    >
+      <div
+        class="flex flex-col gap-4 items-center min-[50rem]:items-start"
+      >
+        <h1
+          class="font-bold tracking-tight text-[length:var(--sl-text-5xl)] leading-[var(--sl-line-height-headings)] text-[color:var(--sl-color-white)]"
+        >
+          Torch<span
+            class="text-[color:var(--sl-color-accent-high)] dark:text-orange-500"
+            >snap</span
+          >
+        </h1>
+        <div
+          class="text-[length:clamp(var(--sl-text-base),calc(0.0625rem+2vw),var(--sl-text-xl))] text-[color:var(--sl-color-gray-2)]"
+        >
+          <span
+            class="block mb-3 text-sm font-bold uppercase tracking-[0.2em] text-[color:var(--sl-color-accent-high)] dark:text-orange-500"
+            >Light · Find · Launch</span
+          >
+          A keyboard-driven application launcher with a sandboxed WebAssembly
+          plugin system.
+        </div>
+      </div>
+      <div
+        class="flex flex-wrap gap-x-8 gap-y-4 justify-center min-[50rem]:justify-start"
+      >
+        <LinkButton
+          href="/usage/getting-started/"
+          variant="primary"
+          icon="right-arrow"
+        >
+          Get Started
+        </LinkButton>
+        <LinkButton
+          href="/development/gadget-sdk/getting-started/"
+          variant="minimal"
+        >
+          Gadget SDK
+        </LinkButton>
+      </div>
+    </div>
+  </div>
+</StarlightPage>

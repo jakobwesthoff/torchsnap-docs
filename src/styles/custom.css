@@ -205,21 +205,12 @@ body {
 /* --- Component overrides --------------------------------- */
 
 /* 1. Page title in accent (not on splash hero) */
-.sl-markdown-content h1 {
+.sl-markdown-content h1:not(:where(.not-content *)) {
   color: var(--sl-color-accent-high) !important;
 }
 
-:root[data-theme="light"] .sl-markdown-content h1 {
+:root[data-theme="light"] .sl-markdown-content h1:not(:where(.not-content *)) {
   color: var(--sl-color-accent) !important;
-}
-
-/* Hero title: "snap" portion in accent via inline class */
-.hero h1 .text-accent {
-  color: var(--sl-color-accent-high);
-}
-
-:root[data-theme="light"] .hero h1 .text-accent {
-  color: #f97316;
 }
 
 /* 2. Subheadings: slightly muted to let h1 stand out */
