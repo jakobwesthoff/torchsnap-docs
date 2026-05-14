@@ -44,6 +44,11 @@ export default defineConfig({
           label: "GitHub",
           href: "https://github.com/jakobwesthoff/torchsnap",
         },
+        {
+          icon: "external",
+          label: "torchsnap.app",
+          href: "https://torchsnap.app",
+        },
       ],
       components: {
         SiteTitle: "./src/components/SiteTitle.astro",
@@ -63,46 +68,47 @@ export default defineConfig({
       customCss: ["./src/styles/custom.css"],
       sidebar: [
         {
-          label: "Usage",
+          label: "Getting Started",
           items: [
-            "usage/getting-started",
-            "usage/installation",
-            "usage/configuration",
-            "usage/keyboard-shortcuts",
-          ],
-        },
-        {
-          label: "Gadgets",
-          items: [{ autogenerate: { directory: "usage/gadgets" } }],
-        },
-        {
-          label: "Building Gadgets",
-          items: [
-            "development/gadget-sdk",
-            "development/gadget-sdk/getting-started",
-            "development/gadget-sdk/manifest",
-            "development/gadget-sdk/torchsnap-format",
-            "development/gadget-sdk/permissions",
-            "development/gadget-sdk/logging",
-          ],
-        },
-        {
-          label: "Interfaces",
-          items: [
+            "start",
+            "start/installation",
+            "start/configuration",
+            "start/keyboard-shortcuts",
             {
-              autogenerate: {
-                directory: "development/gadget-sdk/interfaces",
-              },
+              label: "Gadgets",
+              items: [{ autogenerate: { directory: "start/gadgets" } }],
             },
           ],
         },
         {
-          label: "Frontend",
+          label: "Development",
           items: [
+            "development",
+            "development/hello-world",
+            "development/manifests",
+            "development/archive",
+            "development/permissions",
+            "development/logging",
             {
-              autogenerate: {
-                directory: "development/gadget-sdk/frontend",
-              },
+              label: "Interfaces",
+              collapsed: true,
+              items: [
+                {
+                  autogenerate: {
+                    directory: "development/interfaces",
+                  },
+                },
+              ],
+            },
+            {
+              label: "Frontend",
+              items: [
+                {
+                  autogenerate: {
+                    directory: "development/frontend",
+                  },
+                },
+              ],
             },
           ],
         },
