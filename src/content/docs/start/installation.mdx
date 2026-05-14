@@ -5,10 +5,70 @@ sidebar:
   order: 2
 ---
 
-TODO: Detailed installation guide.
+import { Tabs, TabItem, Steps } from '@astrojs/starlight/components';
+import PlatformBadge from '../../../components/PlatformBadge.astro';
+import Screenshot from '../../../components/Screenshot.astro';
+import dmgDark from '../../../assets/screenshots/dmg-dark.png';
+import dmgLight from '../../../assets/screenshots/dmg-light.png';
+import gatekeeperDark from '../../../assets/screenshots/gatekeeper-dark.png';
+import gatekeeperLight from '../../../assets/screenshots/gatekeeper-light.png';
 
-- macOS: DMG download from GitHub Releases, drag to Applications
-- macOS unsigned app: Gatekeeper will block, step-by-step to allow via System Settings → Privacy & Security, `xattr -cr` alternative
-- Homebrew tap (planned, not yet available)
-- Linux: coming soon, platform-specific notes
-- Windows: planned
+<div class="not-content flex flex-wrap gap-2 mb-4">
+  <PlatformBadge os="mac" available />
+  <PlatformBadge os="linux" />
+  <PlatformBadge os="win" />
+</div>
+
+## macOS
+
+### DMG Download
+
+Download the latest `.dmg` from
+[GitHub Releases](https://github.com/jakobwesthoff/torchsnap/releases/latest),
+open it, and drag Torchsnap into your Applications folder.
+
+<Screenshot dark={dmgDark} light={dmgLight} alt="Torchsnap DMG installer window" maxWidth="400px" />
+
+### Removing the quarantine flag
+
+macOS automatically marks files downloaded from the internet with a quarantine
+flag. When you try to open a quarantined app that hasn't been notarized by
+Apple, macOS will show a warning and refuse to launch it. Torchsnap is open
+source but not yet notarized, so this will happen on first launch.
+
+<Screenshot dark={gatekeeperDark} light={gatekeeperLight} alt="macOS Gatekeeper warning dialog" maxWidth="300px" />
+
+This is safe to work around. The quarantine flag only tells macOS that the file
+was downloaded from the internet — removing it simply skips that check.
+Torchsnap is fully open source, so you can
+[inspect the code](https://github.com/jakobwesthoff/torchsnap) and verify the
+release builds yourself.
+
+Click **Cancel** — do not move the app to the Trash. Then open Terminal and
+run the following command to remove the quarantine flag:
+
+```sh
+xattr -dr com.apple.quarantine /Applications/torchsnap.app
+```
+
+After that, Torchsnap will open normally. You only need to do this once.
+
+### Homebrew
+
+A Homebrew tap is planned. Once available, install with:
+
+```sh
+brew install jakobwesthoff/tap/torchsnap
+```
+
+This is not yet available. Use the DMG download for now. Homebrew will handle
+the quarantine flag automatically — no manual step needed.
+
+## Linux
+
+Linux support is planned. Platform-specific packages (`.AppImage`, `.deb`)
+will be provided once available.
+
+## Windows
+
+Windows support is planned.

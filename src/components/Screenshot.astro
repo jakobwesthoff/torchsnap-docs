@@ -5,12 +5,14 @@ interface Props {
   dark: ImageMetadata;
   light: ImageMetadata;
   alt: string;
+  maxWidth?: string;
 }
 
-const { dark, light, alt } = Astro.props;
+const { dark, light, alt, maxWidth } = Astro.props;
+const style = maxWidth ? `max-width: ${maxWidth}` : undefined;
 ---
 
-<div class="screenshot">
+<div class="screenshot" {style}>
   <Image src={dark} alt={alt} class="only-dark" />
   <Image src={light} alt={alt} class="only-light" />
 </div>
@@ -18,11 +20,16 @@ const { dark, light, alt } = Astro.props;
 <style>
   .screenshot {
     display: grid;
+    align-items: start;
+    margin-inline: auto;
   }
 
   .screenshot :global(.only-dark),
   .screenshot :global(.only-light) {
     grid-area: 1 / 1;
+    width: 100%;
+    height: auto;
+    margin: 0;
     transition: opacity 0.3s ease;
   }
 
