@@ -2,13 +2,32 @@
 title: Introduction
 description: Get up and running with Torchsnap.
 sidebar:
-  order: 1
+  order: 0
+tableOfContents: false
 ---
 
-TODO: Quick-start guide (hub page linking to detail pages).
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
 
-- **Installation** — quick install steps, link to [Installation](/start/installation/) for platform details and unsigned app guide
-- **Basic usage** — global shortcut (`CmdOrCtrl+Shift+Space`), search, execute, dismiss
-- **Configuration** — mention settings exist, link to [Configuration](/start/configuration/)
-- **Keybindings** — mention defaults, link to [Keyboard Shortcuts](/start/keyboard-shortcuts/)
-- **Built-in gadgets** — brief list with one-liner per gadget, link to [Gadgets](/start/gadgets/) section
+Torchsnap is a keyboard-driven application launcher. Press the default global
+shortcut — <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd> on macOS or
+<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd> on other platforms — to open
+the search bar, type to find what you need, and press <kbd>Enter</kbd> to
+launch. Press <kbd>Escape</kbd> to dismiss — first press clears the query,
+second press closes the launcher. The shortcut can be changed in
+[Settings](/start/configuration/).
+
+Results update on every keystroke with fuzzy matching. Arrow keys navigate the
+list, and a footer bar shows secondary actions available for the selected
+result.
+
+Out of the box, Torchsnap ships with gadgets that search applications, manage
+clipboard history, run system commands, evaluate math expressions, pick emoji,
+and more. Everything is extensible through the gadget system — sandboxed
+WebAssembly plugins you can build yourself.
+
+<CardGrid>
+  <LinkCard title="Installation" description="Download Torchsnap for your platform and get running." href="/start/installation/" />
+  <LinkCard title="Configuration" description="Settings window, global shortcut, launch at login, and gadget management." href="/start/configuration/" />
+  <LinkCard title="Keyboard Shortcuts" description="Navigation, text editing, and global hotkeys." href="/start/keyboard-shortcuts/" />
+  <LinkCard title="Gadgets" description="All bundled gadgets and what they do." href="/start/gadgets/" />
+</CardGrid>

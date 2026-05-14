@@ -38,23 +38,13 @@ export default defineConfig({
         src: "./src/assets/logo.png",
       },
       favicon: "/favicon.png",
-      social: [
-        {
-          icon: "github",
-          label: "GitHub",
-          href: "https://github.com/jakobwesthoff/torchsnap",
-        },
-        {
-          icon: "external",
-          label: "torchsnap.app",
-          href: "https://torchsnap.app",
-        },
-      ],
+      social: [],
       components: {
         SiteTitle: "./src/components/SiteTitle.astro",
         Hero: "./src/components/Hero.astro",
         ThemeSelect: "./src/components/ThemeSelect.astro",
         Footer: "./src/components/Footer.astro",
+        SocialIcons: "./src/components/SocialIcons.astro",
       },
       expressiveCode: {
         themes: [macchiato, latte],

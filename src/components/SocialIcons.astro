@@ -1,0 +1,29 @@
+---
+import { Icon } from "astro-icon/components";
+---
+
+<a href="https://github.com/jakobwesthoff/torchsnap" rel="me" class="sl-flex">
+  <span class="sr-only">GitHub</span>
+  <Icon name="simple-icons:github" class="icon" />
+</a>
+<a href="https://torchsnap.app" class="sl-flex">
+  <span class="sr-only">torchsnap.app</span>
+  <Icon name="heroicons:globe-alt" class="icon" />
+</a>
+
+<style>
+  @layer starlight.core {
+    a {
+      color: var(--sl-color-text-accent);
+      padding: 0.5em;
+      margin: -0.5em;
+    }
+    a:hover {
+      color: var(--sl-color-white);
+    }
+    .icon {
+      width: 1em;
+      height: 1em;
+    }
+  }
+</style>
