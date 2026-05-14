@@ -1,7 +1,14 @@
 ---
 import { Image } from "astro:assets";
 import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
-import { LinkButton } from "@astrojs/starlight/components";
+import {
+  Card,
+  CardGrid,
+  LinkButton,
+  Tabs,
+  TabItem,
+} from "@astrojs/starlight/components";
+import PlatformBadge from "../components/PlatformBadge.astro";
 import logo from "../assets/logo.png";
 ---
 
@@ -15,6 +22,7 @@ import logo from "../assets/logo.png";
     hero: { title: "", tagline: "" },
   }}
 >
+  {/* ========== Hero ========== */}
   <div
     class="not-content flex flex-col items-center gap-10 p-4 min-[50rem]:grid min-[50rem]:grid-cols-[auto_auto] min-[50rem]:justify-center min-[50rem]:items-center min-[50rem]:gap-20 min-[50rem]:px-32 min-[50rem]:py-[clamp(2.5rem,calc(1rem+10vmin),10rem)]"
   >
@@ -30,14 +38,12 @@ import logo from "../assets/logo.png";
     <div
       class="flex flex-col gap-[clamp(1.5rem,calc(1.5rem+1vw),2rem)] text-center min-[50rem]:text-start"
     >
-      <div
-        class="flex flex-col gap-4 items-center min-[50rem]:items-start"
-      >
+      <div class="flex flex-col gap-4 items-center min-[50rem]:items-start">
         <h1
           class="font-bold tracking-tight text-[length:var(--sl-text-5xl)] leading-[var(--sl-line-height-headings)] text-[color:var(--sl-color-white)]"
         >
           Torch<span
-            class="text-[color:var(--sl-color-accent-high)] dark:text-orange-500"
+            class="text-[color:var(--sl-color-accent-high)]"
             >snap</span
           >
         </h1>
@@ -70,5 +76,75 @@ import logo from "../assets/logo.png";
         </LinkButton>
       </div>
     </div>
+  </div>
+
+  {/* ========== Content ========== */}
+  <div class="sl-markdown-content">
+    <h2>What is Torchsnap?</h2>
+    <p>
+      Torchsnap is a keyboard-driven application launcher for macOS. A single
+      shortcut opens a compact search bar that finds and launches applications,
+      runs system commands, manages your clipboard history, and more.
+    </p>
+    <p>
+      What makes it different is its gadget system. Gadgets are sandboxed
+      WebAssembly plugins that extend what the launcher can do — from a
+      calculator and emoji picker to custom integrations you build yourself. Each
+      gadget runs in its own sandbox with a deny-by-default permission model, so
+      nothing gets access it didn't ask for.
+    </p>
+    <p>
+      Torchsnap is open source under the <a
+        href="https://www.mozilla.org/en-US/MPL/2.0/">MPL-2.0</a
+      > license.
+    </p>
+    <p><strong>No account required. No telemetry. Free forever.</strong></p>
+
+    <h2>Install</h2>
+    <div class="not-content flex flex-wrap gap-2 mb-4">
+      <PlatformBadge os="mac" available />
+      <PlatformBadge os="linux" />
+      <PlatformBadge os="win" />
+    </div>
+    <Tabs>
+      <TabItem label="DMG Download">
+        <p>
+          Download the latest <code>.dmg</code> from GitHub Releases and drag
+          Torchsnap into your Applications folder.
+        </p>
+        <p>
+          <LinkButton
+            href="https://github.com/jakobwesthoff/torchsnap/releases/latest"
+            variant="minimal"
+            icon="external"
+          >
+            Download for macOS
+          </LinkButton>
+        </p>
+        <p>
+          Torchsnap is not yet code-signed. macOS will ask you to explicitly
+          allow it on first launch.
+          <a href="/usage/macos-unsigned-app/">Learn how →</a>
+        </p>
+      </TabItem>
+      <TabItem label="Homebrew (coming soon)">
+        <p>A Homebrew tap is planned. Once available, install with:</p>
+        <pre><code>brew install jakobwesthoff/tap/torchsnap</code></pre>
+        <p>This is not yet available. Use the DMG download for now.</p>
+      </TabItem>
+    </Tabs>
+
+    <h2>Explore the docs</h2>
+    <CardGrid>
+      <Card title="Usage Guide" icon="open-book">
+        Installation, configuration, keyboard shortcuts, and built-in gadgets.
+        <a href="/usage/getting-started/">Get started →</a>
+      </Card>
+      <Card title="Gadget SDK" icon="puzzle">
+        Build your own gadgets with Rust and WebAssembly. Backend APIs, custom
+        frontend views, manifest reference, and tutorials.
+        <a href="/development/gadget-sdk/getting-started/">Start building →</a>
+      </Card>
+    </CardGrid>
   </div>
 </StarlightPage>

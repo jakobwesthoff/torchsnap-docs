@@ -1,0 +1,33 @@
+---
+import { Icon } from "astro-icon/components";
+
+type OS = "mac" | "win" | "linux";
+
+interface Props {
+  os: OS;
+  available?: boolean;
+}
+
+const { os, available = false } = Astro.props;
+
+const META: Record<OS, { icon: string; label: string }> = {
+  mac: { icon: "simple-icons:apple", label: "macOS" },
+  win: { icon: "simple-icons:windows11", label: "Windows" },
+  linux: { icon: "simple-icons:linux", label: "Linux" },
+};
+
+const { icon, label } = META[os];
+---
+
+<span
+  class:list={[
+    "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium",
+    available
+      ? "border-[color:var(--sl-color-gray-5)] bg-[color:var(--sl-color-gray-6)] text-[color:var(--sl-color-gray-2)]"
+      : "border-[color:var(--sl-color-gray-5)] bg-transparent text-[color:var(--sl-color-gray-4)]",
+  ]}
+>
+  <Icon name={icon} class="h-3.5 w-3.5" />
+  <span>{label}</span>
+  {!available && <span class="opacity-70">· coming soon</span>}
+</span>
