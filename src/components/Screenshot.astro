@@ -1,0 +1,41 @@
+---
+import { Image } from 'astro:assets';
+
+interface Props {
+  dark: ImageMetadata;
+  light: ImageMetadata;
+  alt: string;
+}
+
+const { dark, light, alt } = Astro.props;
+---
+
+<div class="screenshot">
+  <Image src={dark} alt={alt} class="only-dark" />
+  <Image src={light} alt={alt} class="only-light" />
+</div>
+
+<style>
+  .screenshot {
+    display: grid;
+  }
+
+  .screenshot :global(.only-dark),
+  .screenshot :global(.only-light) {
+    grid-area: 1 / 1;
+    transition: opacity 0.3s ease;
+  }
+
+  .screenshot :global(.only-dark) {
+    opacity: 0;
+  }
+  .screenshot :global(.only-light) {
+    opacity: 0;
+  }
+  :global([data-theme="dark"]) .screenshot :global(.only-dark) {
+    opacity: 1;
+  }
+  :global([data-theme="light"]) .screenshot :global(.only-light) {
+    opacity: 1;
+  }
+</style>

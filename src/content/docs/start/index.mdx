@@ -3,27 +3,61 @@ title: Introduction
 description: Get up and running with Torchsnap.
 sidebar:
   order: 0
-tableOfContents: false
+tableOfContents: true
 ---
 
 import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+import Screenshot from '../../../components/Screenshot.astro';
+import launcherDark from '../../../assets/screenshots/launcher-dark.png';
+import launcherLight from '../../../assets/screenshots/launcher-light.png';
+import searchDark from '../../../assets/screenshots/search-dark.png';
+import searchLight from '../../../assets/screenshots/search-light.png';
 
-Torchsnap is a keyboard-driven application launcher. Press the default global
-shortcut — <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd> on macOS or
-<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd> on other platforms — to open
-the search bar, type to find what you need, and press <kbd>Enter</kbd> to
-launch. Press <kbd>Escape</kbd> to dismiss — first press clears the query,
-second press closes the launcher. The shortcut can be changed in
+Torchsnap is a keyboard-driven application launcher. If you haven't installed
+it yet, head over to the [Installation](/start/installation/) guide first.
+
+## Opening the launcher
+
+Press <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd> on macOS or
+<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd> on other platforms to bring
+up the search bar. This is the default shortcut — you can change it in
 [Settings](/start/configuration/).
 
-Results update on every keystroke with fuzzy matching. Arrow keys navigate the
-list, and a footer bar shows secondary actions available for the selected
-result.
+<Screenshot dark={launcherDark} light={launcherLight} alt="Torchsnap launcher with the search bar open" />
 
-Out of the box, Torchsnap ships with gadgets that search applications, manage
-clipboard history, run system commands, evaluate math expressions, pick emoji,
-and more. Everything is extensible through the gadget system — sandboxed
-WebAssembly plugins you can build yourself.
+## Searching and launching
+
+Start typing and results appear instantly, narrowed by fuzzy matching on every
+keystroke. Use the arrow keys to move through the list and press
+<kbd>Enter</kbd> to run the selected result.
+
+<Screenshot dark={searchDark} light={searchLight} alt="Searching for 'ghost' showing the Ghostty application as a result" />
+
+Some results offer secondary actions — for example "Reveal in Finder" for an
+application. The available action and its key hint are shown in the footer bar
+below the results.
+
+Press <kbd>Escape</kbd> to dismiss the launcher. If the search field contains
+text, the first press clears it; a second press closes the window.
+
+## Gadgets
+
+Everything Torchsnap can do is provided by gadgets. A set of built-in gadgets
+ships out of the box:
+
+- [**App Launcher**](/start/gadgets/app-launcher/) — find and open installed applications
+- [**Clipboard Manager**](/start/gadgets/clipboard-manager/) — browse and paste from clipboard history
+- [**System Commands**](/start/gadgets/system-commands/) — lock screen, sleep, restart, toggle dark mode, and more
+- [**System Preferences**](/start/gadgets/system-preferences/) — jump directly to a specific settings pane
+- [**Calculator**](/start/gadgets/calculator/) — evaluate math expressions inline (prefix `=`)
+- [**Emoji Picker**](/start/gadgets/emoji-picker/) — search and insert emoji (prefix `:`)
+- [**Bangs**](/start/gadgets/bangs/) — DuckDuckGo bang shortcuts (prefix `!`)
+- [**Open URL**](/start/gadgets/open-url/) — open URLs typed into the search bar
+
+Gadgets are sandboxed WebAssembly plugins — you can also
+[build your own](/development/).
+
+## Next steps
 
 <CardGrid>
   <LinkCard title="Installation" description="Download Torchsnap for your platform and get running." href="/start/installation/" />
