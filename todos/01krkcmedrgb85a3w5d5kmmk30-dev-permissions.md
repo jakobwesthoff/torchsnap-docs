@@ -1,0 +1,13 @@
+# Permission System
+
+Path: `development/gadget-sdk/permissions/`
+
+- Deny-by-default model: no capability granted unless explicitly requested
+- Boolean permissions: clipboard, frecency, settings, sql-storage, website-metadata, path-resolver
+- Structured permissions:
+  - `[permissions.opener]` — schemes, open-path, reveal-path
+  - `[permissions.http]` — origins list (or `["*"]`)
+  - `[permissions.filesystem]` — read patterns with glob support and `${var}` expansion
+  - `[[permissions.command]]` — per-binary argv constraints (literal, enum, glob, regex, path-under, any-string, rest)
+- Validation rules and error cases
+- Examples from real gadgets (calculator, bangs, zerotier)
