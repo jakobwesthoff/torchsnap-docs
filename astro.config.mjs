@@ -64,18 +64,23 @@ export default defineConfig({
       sidebar: [
         {
           label: "Usage",
-          items: [{ autogenerate: { directory: "usage" } }],
+          autogenerate: { directory: "usage" },
         },
         {
-          label: "Development",
-          items: [
-            {
-              label: "Gadget SDK",
-              items: [
-                { autogenerate: { directory: "development/gadget-sdk" } },
-              ],
-            },
-          ],
+          label: "Gadgets",
+          autogenerate: { directory: "usage/gadgets" },
+        },
+        {
+          label: "Gadget SDK",
+          autogenerate: { directory: "development/gadget-sdk" },
+        },
+        {
+          label: "WIT Interfaces",
+          autogenerate: { directory: "development/gadget-sdk/interfaces" },
+        },
+        {
+          label: "Frontend SDK",
+          autogenerate: { directory: "development/gadget-sdk/frontend" },
         },
       ],
     }),

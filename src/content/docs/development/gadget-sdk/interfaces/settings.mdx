@@ -1,0 +1,17 @@
+---
+title: "settings"
+description: Read gadget-scoped settings.
+sidebar:
+  order: 13
+  badge:
+    text: Import
+    variant: tip
+---
+
+TODO: Settings import interface documentation.
+
+- Permission: `permissions.settings = true`
+- Settings namespaced under `gadgets.<id>.*` (prefix stripped in WIT)
+- Reactive: `on-setting-changed` callback in lifecycle export
+- SDK helpers: `get_or`, `get_or_else`
+- Default values declared in `[settings]` manifest section
