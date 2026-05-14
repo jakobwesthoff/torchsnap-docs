@@ -1,0 +1,118 @@
+---
+import { Icon } from "astro-icon/components";
+
+const OPTIONS = [
+  { value: "system", icon: "heroicons:computer-desktop", label: "System" },
+  { value: "light", icon: "heroicons:sun", label: "Light" },
+  { value: "dark", icon: "heroicons:moon", label: "Dark" },
+] as const;
+---
+
+<div
+  class="theme-toggle"
+  role="radiogroup"
+  aria-label="Theme"
+>
+  <div class="theme-toggle-pill"></div>
+
+  {
+    OPTIONS.map(({ value, icon, label }) => (
+      <button
+        type="button"
+        role="radio"
+        data-value={value}
+        aria-label={label}
+        aria-checked="false"
+        class="theme-toggle-option"
+      >
+        <Icon name={icon} />
+      </button>
+    ))
+  }
+</div>
+
+{/* Stamp data-theme-preference before first paint so the pill CSS
+    positions correctly without a flash. Runs after Starlight's
+    ThemeProvider which already read localStorage. */}
+<script is:inline>
+  (function () {
+    var stored = typeof localStorage !== "undefined"
+      ? localStorage.getItem("starlight-theme")
+      : null;
+    var pref = stored === "light" || stored === "dark" ? stored : "system";
+    document.documentElement.dataset.themePreference = pref;
+  })();
+</script>
+
+<script>
+  import { initThemeToggle } from "../theme/toggle.client";
+  initThemeToggle();
+</script>
+
+<style>
+  .theme-toggle {
+    position: relative;
+    display: flex;
+    align-items: center;
+    border-radius: 9999px;
+    background: var(--sl-color-gray-6);
+    padding: 3px;
+  }
+
+  .theme-toggle-pill {
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    border-radius: 9999px;
+    background: var(--sl-color-bg-nav);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease-out;
+  }
+
+  .theme-toggle-option {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    border-radius: 9999px;
+    background: transparent;
+    cursor: pointer;
+    color: var(--sl-color-gray-3);
+    transition: color 0.15s ease;
+  }
+
+  .theme-toggle-option:hover {
+    color: var(--sl-color-gray-2);
+  }
+
+  .theme-toggle-option svg,
+  .theme-toggle-option [data-icon] {
+    width: 16px;
+    height: 16px;
+  }
+</style>
+
+<style is:global>
+  /* Pill position keyed off data-theme-preference on <html>. */
+  html[data-theme-preference="system"] .theme-toggle-pill {
+    transform: translateX(0);
+  }
+  html[data-theme-preference="light"] .theme-toggle-pill {
+    transform: translateX(28px);
+  }
+  html[data-theme-preference="dark"] .theme-toggle-pill {
+    transform: translateX(56px);
+  }
+
+  /* Active option icon color */
+  html[data-theme-preference="system"] .theme-toggle-option[data-value="system"],
+  html[data-theme-preference="light"] .theme-toggle-option[data-value="light"],
+  html[data-theme-preference="dark"] .theme-toggle-option[data-value="dark"] {
+    color: var(--sl-color-white);
+  }
+</style>

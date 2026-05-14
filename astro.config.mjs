@@ -1,6 +1,7 @@
 // @ts-check
 import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
+import icon from "astro-icon";
 import tailwindcss from "@tailwindcss/vite";
 
 const macchiatoModule = await import("@shikijs/themes/catppuccin-macchiato");
@@ -30,6 +31,7 @@ export default defineConfig({
     plugins: [tailwindcss()],
   },
   integrations: [
+    icon(),
     starlight({
       title: "Torchsnap",
       logo: {
@@ -46,6 +48,7 @@ export default defineConfig({
       components: {
         SiteTitle: "./src/components/SiteTitle.astro",
         Hero: "./src/components/Hero.astro",
+        ThemeSelect: "./src/components/ThemeSelect.astro",
       },
       expressiveCode: {
         themes: [macchiato, latte],
