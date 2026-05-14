@@ -49,6 +49,7 @@ export default defineConfig({
         SiteTitle: "./src/components/SiteTitle.astro",
         Hero: "./src/components/Hero.astro",
         ThemeSelect: "./src/components/ThemeSelect.astro",
+        Footer: "./src/components/Footer.astro",
       },
       expressiveCode: {
         themes: [macchiato, latte],

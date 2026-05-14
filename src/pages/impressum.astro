@@ -1,0 +1,218 @@
+---
+// Legal page reachable from the footer. Content is German per § 5 TMG
+// requirements. Combined Impressum + Datenschutz on one page — no
+// separate /datenschutz route — matches the scope of the content
+// (single operator, no analytics, no third-party data flows).
+//
+// Contact details are anti-scraper-encoded with XOR + base64. The
+// plain-text values are recovered at runtime by a small inline script
+// at the bottom of the page; users without JavaScript see a localised
+// note instead.
+
+import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
+
+const ENCODED_KEY = "X3TFqWUEpiGJ";
+const PHONE_ENC = "YAd+c1V9eHJURWBieQt+";
+const EMAIL_ENC = "I1YrPwsKPD0RFTwkJVI3fQU6OA==";
+---
+
+<StarlightPage
+  frontmatter={{
+    title: "Impressum",
+    description: "Angaben gemäß § 5 TMG",
+    pagefind: false,
+  }}
+>
+  <div class="impressum" lang="de">
+    <p class="note">Angaben gemäß § 5 TMG</p>
+    <p class="note" lang="en">
+      German law requires every commercial website to publish operator and
+      contact information in this exact form. The content below is therefore in
+      German.
+    </p>
+
+    <section>
+      <h2>Anbieter</h2>
+      <div class="address">
+        <p>Jakob Westhoff</p>
+        <p>Am Bollwerk 6</p>
+        <p>58300 Wetter</p>
+        <p>Deutschland</p>
+      </div>
+      <p class="body">Vertreten durch:<br />Jakob Westhoff</p>
+    </section>
+
+    <section>
+      <h2>Kontakt</h2>
+      <div class="address">
+        <p>
+          Telefon: <span data-contact="phone" data-enc={PHONE_ENC}></span>
+        </p>
+        <p>
+          E-Mail: <span data-contact="email" data-enc={EMAIL_ENC}></span>
+        </p>
+        <noscript>
+          <p class="note">
+            (JavaScript erforderlich, um die Kontaktdaten anzuzeigen.)
+          </p>
+        </noscript>
+      </div>
+    </section>
+
+    <section>
+      <h2>Haftungsausschluss</h2>
+      <h3>Haftung für Inhalte</h3>
+      <p class="body">
+        Die Inhalte unserer Seiten wurden mit größter Sorgfalt erstellt. Für die
+        Richtigkeit, Vollständigkeit und Aktualität der Inhalte können wir
+        jedoch keine Gewähr übernehmen. Als Diensteanbieter sind wir gemäß § 7
+        Abs. 1 TMG für eigene Inhalte auf diesen Seiten nach den allgemeinen
+        Gesetzen verantwortlich. Nach §§ 8 bis 10 TMG sind wir als
+        Diensteanbieter jedoch nicht verpflichtet, übermittelte oder
+        gespeicherte fremde Informationen zu überwachen oder nach Umständen zu
+        forschen, die auf eine rechtswidrige Tätigkeit hinweisen.
+        Verpflichtungen zur Entfernung oder Sperrung der Nutzung von
+        Informationen nach den allgemeinen Gesetzen bleiben hiervon unberührt.
+        Eine diesbezügliche Haftung ist jedoch erst ab dem Zeitpunkt der
+        Kenntnis einer konkreten Rechtsverletzung möglich. Bei Bekanntwerden von
+        entsprechenden Rechtsverletzungen werden wir diese Inhalte umgehend
+        entfernen.
+      </p>
+
+      <h3>Haftung für Links</h3>
+      <p class="body">
+        Unser Angebot enthält Links zu externen Webseiten Dritter, auf deren
+        Inhalte wir keinen Einfluss haben. Deshalb können wir für diese fremden
+        Inhalte auch keine Gewähr übernehmen. Für die Inhalte der verlinkten
+        Seiten ist stets der jeweilige Anbieter oder Betreiber der Seiten
+        verantwortlich. Die verlinkten Seiten wurden zum Zeitpunkt der
+        Verlinkung auf mögliche Rechtsverstöße überprüft. Rechtswidrige Inhalte
+        waren zum Zeitpunkt der Verlinkung nicht erkennbar. Eine permanente
+        inhaltliche Kontrolle der verlinkten Seiten ist jedoch ohne konkrete
+        Anhaltspunkte einer Rechtsverletzung nicht zumutbar. Bei Bekanntwerden
+        von Rechtsverletzungen werden wir derartige Links umgehend entfernen.
+      </p>
+
+      <h3>Urheberrecht</h3>
+      <p class="body">
+        Die durch die Seitenbetreiber erstellten Inhalte und Werke auf diesen
+        Seiten unterliegen dem deutschen Urheberrecht. Die Vervielfältigung,
+        Bearbeitung, Verbreitung und jede Art der Verwertung außerhalb der
+        Grenzen des Urheberrechtes bedürfen der schriftlichen Zustimmung des
+        jeweiligen Autors bzw. Erstellers. Downloads und Kopien dieser Seite
+        sind nur für den privaten, nicht kommerziellen Gebrauch gestattet.
+        Soweit die Inhalte auf dieser Seite nicht vom Betreiber erstellt wurden,
+        werden die Urheberrechte Dritter beachtet. Insbesondere werden Inhalte
+        Dritter als solche gekennzeichnet. Sollten Sie trotzdem auf eine
+        Urheberrechtsverletzung aufmerksam werden, bitten wir um einen
+        entsprechenden Hinweis. Bei Bekanntwerden von Rechtsverletzungen werden
+        wir derartige Inhalte umgehend entfernen.
+      </p>
+    </section>
+
+    <section>
+      <h2>Datenschutz</h2>
+      <p class="body">
+        Die Nutzung unserer Webseite ist in der Regel ohne Angabe
+        personenbezogener Daten möglich. Soweit auf unseren Seiten
+        personenbezogene Daten (beispielsweise Name, Anschrift oder
+        E-Mail-Adressen) erhoben werden, erfolgt dies, soweit möglich, stets auf
+        freiwilliger Basis. Diese Daten werden ohne Ihre ausdrückliche
+        Zustimmung nicht an Dritte weitergegeben.
+      </p>
+      <p class="body">
+        Wir weisen darauf hin, dass die Datenübertragung im Internet (z. B. bei
+        der Kommunikation per E-Mail) Sicherheitslücken aufweisen kann. Ein
+        lückenloser Schutz der Daten vor dem Zugriff durch Dritte ist nicht
+        möglich.
+      </p>
+      <p class="body">
+        Der Nutzung von im Rahmen der Impressumspflicht veröffentlichten
+        Kontaktdaten durch Dritte zur Übersendung von nicht ausdrücklich
+        angeforderter Werbung und Informationsmaterialien wird hiermit
+        ausdrücklich widersprochen. Die Betreiber der Seiten behalten sich
+        ausdrücklich rechtliche Schritte im Falle der unverlangten Zusendung von
+        Werbeinformationen, etwa durch Spam-Mails, vor.
+      </p>
+    </section>
+  </div>
+
+  <script define:vars={{ ENCODED_KEY }}>
+    (() => {
+      const rot13 = (s) =>
+        s.replace(/[a-zA-Z]/g, (c) => {
+          const code = c.charCodeAt(0);
+          const base = code >= 65 && code <= 90 ? 65 : 97;
+          return String.fromCharCode(((code - base + 13) % 26) + base);
+        });
+
+      const key = rot13(ENCODED_KEY);
+
+      const decrypt = (b64) => {
+        const decoded = atob(b64);
+        let out = "";
+        for (let i = 0; i < decoded.length; i++) {
+          out += String.fromCharCode(
+            decoded.charCodeAt(i) ^ key.charCodeAt(i % key.length),
+          );
+        }
+        return out;
+      };
+
+      for (const el of document.querySelectorAll("[data-contact]")) {
+        const enc = el.getAttribute("data-enc");
+        const plain = decrypt(enc);
+        if (el.dataset.contact === "email") {
+          const a = document.createElement("a");
+          a.href = `mailto:${plain}`;
+          a.textContent = plain;
+          el.replaceWith(a);
+        } else {
+          el.textContent = plain;
+        }
+      }
+    })();
+  </script>
+</StarlightPage>
+
+<style>
+  .impressum {
+    line-height: 1.75;
+  }
+
+  .impressum .note {
+    font-size: var(--sl-text-sm);
+    color: var(--sl-color-gray-3);
+  }
+
+  .impressum section {
+    margin-top: 2.5rem;
+  }
+
+  .impressum h2 {
+    font-size: var(--sl-text-2xl) !important;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .impressum h3 {
+    font-size: var(--sl-text-base) !important;
+    font-weight: 600;
+    color: var(--sl-color-white);
+    margin-top: 1.5rem;
+  }
+
+  .impressum .address {
+    margin-top: 1rem;
+    color: var(--sl-color-gray-2);
+  }
+
+  .impressum .address p {
+    line-height: 1.5;
+  }
+
+  .impressum .body {
+    margin-top: 0.75rem;
+    color: var(--sl-color-gray-2);
+  }
+</style>
