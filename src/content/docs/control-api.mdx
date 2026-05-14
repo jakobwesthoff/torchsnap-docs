@@ -1,0 +1,20 @@
+---
+title: Control API
+description: Drive Torchsnap from external programs via JSON-RPC over a Unix socket.
+sidebar:
+  order: 0
+---
+
+TODO: Control API documentation.
+
+- What it is: JSON-RPC 2.0 over Unix domain socket for external automation
+- Enabling via Settings → General → Control API toggle
+- Socket path per platform (macOS, Linux)
+- Connecting with `socat`
+- Protocol: newline-delimited JSON-RPC 2.0
+- API methods: `show`, `hide`, `toggle`, `dismiss`, `query`, `status`
+- Error codes (protocol and application)
+- Multiple client support
+- Scripting examples
+
+Source material: `torchsnap/docs/control-api.md`

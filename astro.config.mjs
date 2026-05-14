@@ -64,23 +64,51 @@ export default defineConfig({
       sidebar: [
         {
           label: "Usage",
-          autogenerate: { directory: "usage" },
+          items: [
+            "usage/getting-started",
+            "usage/installation",
+            "usage/configuration",
+            "usage/keyboard-shortcuts",
+          ],
         },
         {
           label: "Gadgets",
-          autogenerate: { directory: "usage/gadgets" },
+          items: [{ autogenerate: { directory: "usage/gadgets" } }],
         },
         {
-          label: "Gadget SDK",
-          autogenerate: { directory: "development/gadget-sdk" },
+          label: "Building Gadgets",
+          items: [
+            "development/gadget-sdk",
+            "development/gadget-sdk/getting-started",
+            "development/gadget-sdk/manifest",
+            "development/gadget-sdk/torchsnap-format",
+            "development/gadget-sdk/permissions",
+            "development/gadget-sdk/logging",
+          ],
         },
         {
-          label: "WIT Interfaces",
-          autogenerate: { directory: "development/gadget-sdk/interfaces" },
+          label: "Interfaces",
+          items: [
+            {
+              autogenerate: {
+                directory: "development/gadget-sdk/interfaces",
+              },
+            },
+          ],
         },
         {
-          label: "Frontend SDK",
-          autogenerate: { directory: "development/gadget-sdk/frontend" },
+          label: "Frontend",
+          items: [
+            {
+              autogenerate: {
+                directory: "development/gadget-sdk/frontend",
+              },
+            },
+          ],
+        },
+        {
+          label: "Control API",
+          items: ["control-api"],
         },
       ],
     }),
