@@ -5,13 +5,65 @@ sidebar:
   order: 4
 ---
 
-TODO: Keyboard shortcuts reference.
+import { Aside } from '@astrojs/starlight/components';
 
-- Global launcher shortcut: `CmdOrCtrl+Shift+Space` (default)
-- How to customize the global shortcut
-- Per-gadget shortcuts (e.g., clipboard manager `CmdOrCtrl+Shift+V`)
-- In-launcher keybindings: navigate results, execute, dismiss, actions
-- Platform differences:
-  - macOS: global shortcuts managed by the app
-  - Linux: may need to be configured via Wayland compositor / window manager instead
-- Modifier key mapping: `Meta` = Cmd on macOS, Ctrl on Linux
+## Global shortcut
+
+The default shortcut to open the launcher is
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd> on macOS or
+<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd> on other platforms.
+Pressing it again while the launcher is open dismisses it.
+
+You can change this shortcut in [Settings](/start/settings/) under **General →
+Global Shortcut**. Click **Change** and press the new key combination you want
+to use.
+
+## In-launcher shortcuts
+
+Once the launcher is open, these shortcuts are available:
+
+| Shortcut | Action |
+|---|---|
+| <kbd>Enter</kbd> | Execute the primary action on the selected result. |
+| <kbd>Cmd</kbd>+<kbd>Enter</kbd> / <kbd>Ctrl</kbd>+<kbd>Enter</kbd> | Execute the secondary action (shown in the footer bar). |
+| <kbd>↓</kbd> / <kbd>↑</kbd> | Move selection down or up. |
+| <kbd>Page Down</kbd> / <kbd>Page Up</kbd> | Move selection down or up by 8 rows. |
+| <kbd>Escape</kbd> | Clear the search query. If already empty, close the launcher. |
+
+### Text editing
+
+The search field supports Emacs-style text editing shortcuts:
+
+| Shortcut | Action |
+|---|---|
+| <kbd>Ctrl</kbd>+<kbd>W</kbd> | Delete word backward. |
+| <kbd>Ctrl</kbd>+<kbd>U</kbd> | Delete from cursor to start of line. |
+| <kbd>Ctrl</kbd>+<kbd>K</kbd> | Delete from cursor to end of line. |
+| <kbd>Ctrl</kbd>+<kbd>A</kbd> | Move cursor to beginning of line. |
+| <kbd>Ctrl</kbd>+<kbd>E</kbd> | Move cursor to end of line. |
+
+## Gadget shortcuts
+
+Some gadgets register their own global shortcuts for direct access. For
+example, the [Clipboard Manager](/start/gadgets/clipboard-manager/) can be
+opened directly with <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> on macOS or
+<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> on other platforms, without
+going through the main launcher first.
+
+Gadget-specific shortcuts can be customized in the gadget's own settings panel
+within [Settings](/start/settings/).
+
+## Linux
+
+<Aside type="caution" title="Under construction">
+  This section will be expanded once the Linux version of Torchsnap is
+  available.
+</Aside>
+
+On Linux, global keyboard shortcuts may not be manageable by the application
+itself, depending on the display server in use. Under Wayland, the compositor
+controls global shortcut registration — you may need to configure the
+Torchsnap shortcut through your desktop environment's keyboard settings (for
+example GNOME Settings or KDE System Settings) rather than within the app.
+
+Under X11, Torchsnap can register global shortcuts directly, similar to macOS.
