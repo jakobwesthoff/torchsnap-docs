@@ -1,0 +1,17 @@
+---
+title: Messaging
+description: Frontend-to-backend RPC for gadget views.
+sidebar:
+  order: 3
+---
+
+TODO: Gadget messaging documentation.
+
+- What messaging is: custom RPC parallel to the search pipeline
+- Frontend side: sendMessage from useGadgetRuntime, typed request/response
+- Backend side: MessagingGuest trait, handle-message(method, payload)
+- JSON encoding: both directions are JSON-encoded strings
+- SDK helpers: messaging::parse_payload, messaging::to_response
+- impl_noop_messaging! for gadgets that don't need RPC
+- useGadgetStream hook: streaming updates (native gadgets only)
+- WASM limitation: request/response only, no streaming

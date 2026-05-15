@@ -1,16 +1,16 @@
 ---
-title: Hello World
-description: Build your first Torchsnap gadget.
+title: Getting Started
+description: Build, install, and test your first Torchsnap gadget.
 sidebar:
   order: 1
 ---
 
-TODO: Step-by-step hello world tutorial.
+TODO: Walk through building a gadget from the template.
 
-- Prerequisites: Rust toolchain, `wasm32-wasip2` target
-- Scaffold from `gadgets/template/`
-- Write a basic `search()` implementation
-- Build with `cargo build --release` (no cargo-component needed)
-- Package as `.torchsnap` archive
-- Install into user gadget directory and test
-- Key macros: `define_gadget!`, `impl_noop_messaging!`, `impl_noop_tasks!`
+- Prerequisites: Rust toolchain, wasm32-wasip2 target
+- Cloning/copying the template gadget
+- Project structure walkthrough (Cargo.toml, manifest.toml, src/lib.rs, frontend/)
+- Building with cargo build --target wasm32-wasip2 --release
+- Installing during development (dev gadget root)
+- Testing in the launcher
+- Making changes and iterating

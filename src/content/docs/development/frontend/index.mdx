@@ -1,15 +1,16 @@
 ---
 title: Introduction
-description: Build custom views and settings panels for gadgets.
+description: Build React frontends for Torchsnap gadgets.
 sidebar:
   order: 0
 ---
 
-TODO: Frontend development introduction.
+TODO: Frontend SDK introduction.
 
-- What gadget frontends are: React components rendered in the host's webview
-- Three UI surfaces: custom views (full launcher takeover), inline views (above result list), settings panels
-- The `@torchsnap/gadget-sdk` TypeScript package
-- How frontend bundles are declared in `[frontend]` manifest section
-- Shim pattern: SDK reads from `window.__torchsnap` at runtime
-- Vite plugin for building gadget frontends
+- What the frontend SDK provides: @torchsnap/gadget-sdk package
+- How gadget frontends are loaded: torchsnap-gadget:// protocol, dynamic import
+- Shared React instance: host owns React, gadgets import through SDK shims
+- Package subpath exports: types, hooks, components, keybindings, utils, vite, testing, theme.css
+- Design tokens and theme CSS
+- Manifest frontend configuration: bundles, CSS, views, settings
+- Building with Vite (SDK provides config helpers)

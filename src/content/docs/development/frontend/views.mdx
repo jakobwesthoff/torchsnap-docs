@@ -1,15 +1,18 @@
 ---
-title: Custom Views & Inline Views
-description: Full launcher views and inline result displays.
+title: Views
+description: Custom and inline views for gadget frontends.
 sidebar:
-  order: 2
+  order: 1
 ---
 
-TODO: Custom views and inline views documentation.
+TODO: Gadget view component documentation.
 
-- Custom views: full launcher content replacement (e.g., emoji grid, calculator history)
-- Inline views: rendered above the result list (e.g., calculator inline result)
-- `GadgetViewProps`, `InlineViewProps` types
-- Declaring views in `[frontend.views]` and `[frontend.inline-views]` manifest sections
-- How search returns `custom-ui(view-response)` or `inline-ui(view-response)`
-- Communication with WASM backend via messaging interface
+- Custom views: replace the result list entirely (prefix mode only)
+- Inline views: rendered above the result list (any mode, one per search)
+- Component contract: GadgetViewProps and InlineViewProps
+- Props: results, data, query, matchedPrefix, selected
+- Context: useGadgetInfo, useGadgetRuntime, useLauncher
+- Launcher actions: goBack, dismiss, onExecute, onFooterChange, setDisplayQuery
+- Footer management: onFooterChange for custom action bars
+- Registration: [frontend.views] and [frontend.inline-views] in manifest
+- View name resolution: how the host maps view names to React components

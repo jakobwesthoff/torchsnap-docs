@@ -1,17 +1,22 @@
 ---
-title: Manifests
-description: The gadget manifest format and all available fields.
+title: Manifest
+description: The manifest.toml reference for Torchsnap gadgets.
 sidebar:
   order: 2
 ---
 
-TODO: Complete `manifest.toml` reference.
+TODO: Complete manifest.toml reference.
 
-- `[gadget]`: id (naming rules), name, description, version, wasm, icon, prefixes
-- `[settings]`: default values, JSON-compatible TOML
-- `[storage.sql]`: migrations list, applied before `enable()`
-- `[[tasks]]`: scheduled tasks with POSIX cron expressions
-- `[shortcuts]`: global shortcut declarations (label + default binding)
-- `[permissions]`: all boolean flags and structured permission blocks
-- `[frontend]`: bundle paths, views, inline-views, settings component
-- Path variables: `${home}`, `${xdg-config}`, `${xdg-data}`, `${gadget-data}`, `${gadget-archive}`
+- [gadget] section: id, name, description, version, wasm, icon, prefixes
+- [settings] section: default values seeded on first load
+- [permissions] section: top-level boolean flags (clipboard, frecency, website-metadata)
+- [permissions.opener]: schemes, open-path, reveal-path
+- [permissions.http]: origins allowlist
+- [permissions.fs]: read globs with substitution variables
+- [[permissions.command]]: per-binary argv-shape rules
+- [storage.sql]: migrations list
+- [[tasks]]: cron-scheduled background tasks
+- [frontend]: launcher-bundle, launcher-css, settings-bundle, settings-css
+- [frontend.views] and [frontend.inline-views]: named view registration
+- [frontend.settings]: settings component registration
+- [shortcuts]: global keyboard shortcuts (not yet available for WASM)

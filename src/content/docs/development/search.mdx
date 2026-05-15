@@ -1,0 +1,19 @@
+---
+title: Search
+description: How gadgets participate in the search pipeline.
+sidebar:
+  order: 3
+---
+
+TODO: Search pipeline from the gadget author's perspective.
+
+- Two search modes: catalog and query
+- Catalog mode: returning entries(), host runs fuzzy matching, keywords
+- Query mode: search(query, matched_prefix), gadget scores its own results
+- Prefix routing: declaring prefixes in manifest, exclusive routing, matched_prefix parameter
+- search-response variants: nothing, results, custom-ui, inline-ui
+- Scored entries: id, title, subtitle, icon, score, highlight positions, actions, data
+- The data field: opaque round-trip payload from search() to execute()
+- Execution: execute(entry, action_id), post-action (nothing, dismiss, keep-open)
+- Actions and action-id: well-known variants (open, copy, reveal, etc.) and custom
+- Icons: hero-icon, data-url, asset-icon, emoji

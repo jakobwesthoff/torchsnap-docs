@@ -1,0 +1,17 @@
+---
+title: Packaging
+description: Package and distribute Torchsnap gadgets.
+sidebar:
+  order: 6
+---
+
+TODO: Gadget packaging and distribution.
+
+- The .torchsnap archive format: zip containing manifest.toml, WASM binary, frontend bundles, assets
+- Gadget directory layout: what goes where inside the archive
+- Distribution roots: system (bundled), dev (debug builds), user (installed)
+- Precedence: system > dev > user, archive shadows directory of same stem
+- Installing: dropping a .torchsnap file into the user gadgets directory
+- Uninstalling: removes archive, state tree, and settings
+- Storage layout: code vs host-managed state separation
+- Restart requirement: GadgetHost slot list is frozen after app setup

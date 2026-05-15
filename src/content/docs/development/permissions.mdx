@@ -1,18 +1,18 @@
 ---
 title: Permissions
-description: The deny-by-default permission model for gadgets.
+description: The deny-by-default permission model for gadget capabilities.
 sidebar:
   order: 4
 ---
 
-TODO: Permission system documentation.
+TODO: Permission model reference.
 
-- Deny-by-default model: no capability granted unless explicitly requested
-- Boolean permissions: clipboard, frecency, settings, sql-storage, website-metadata, path-resolver
-- Structured permissions:
-  - `[permissions.opener]`: schemes, open-path, reveal-path
-  - `[permissions.http]`: origins list (or `["*"]`)
-  - `[permissions.filesystem]`: read patterns with glob support and `${var}` expansion
-  - `[[permissions.command]]`: per-binary argv constraints (literal, enum, glob, regex, path-under, any-string, rest)
-- Validation rules and error cases
-- Examples from real gadgets (calculator, bangs, zerotier)
+- Deny-by-default: capabilities not declared in manifest are unreachable
+- Boolean permissions: clipboard, frecency, website-metadata
+- Always-available interfaces: logging, settings, assets, platform, path-resolver
+- Opener permissions: schemes allowlist, open-path, reveal-path
+- HTTP permissions: origins allowlist, wildcard trust-all
+- Filesystem permissions: read globs, substitution variables, symlink resolution
+- Command permissions: per-binary argv-shape rules, constraint kinds
+- SQL storage: declared via [storage.sql], not a permission flag
+- Substitution variables: gadget-data, gadget-archive, home, xdg-config, xdg-data

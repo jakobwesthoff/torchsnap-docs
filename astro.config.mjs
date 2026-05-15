@@ -76,20 +76,9 @@ export default defineConfig({
             "development",
             "development/hello-world",
             "development/manifests",
-            "development/archive",
+            "development/search",
             "development/permissions",
-            "development/logging",
-            {
-              label: "Interfaces",
-              collapsed: true,
-              items: [
-                {
-                  autogenerate: {
-                    directory: "development/interfaces",
-                  },
-                },
-              ],
-            },
+            "development/host-interfaces",
             {
               label: "Frontend",
               items: [
@@ -100,6 +89,7 @@ export default defineConfig({
                 },
               ],
             },
+            "development/packaging",
           ],
         },
         {

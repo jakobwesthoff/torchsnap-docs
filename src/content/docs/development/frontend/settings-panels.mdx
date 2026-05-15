@@ -1,13 +1,15 @@
 ---
 title: Settings Panels
-description: Build settings UI for gadgets.
+description: Build settings UIs for gadget configuration.
 sidebar:
-  order: 3
+  order: 2
 ---
 
-TODO: Settings panels documentation.
+TODO: Gadget settings panel documentation.
 
-- `GadgetSettingsProps` type
-- Declaring in `[frontend.settings]` manifest section
-- `useGadgetSetting<T>(key)` hook for reading/writing settings
-- Settings reactivity: changes propagate to WASM via `on-setting-changed`
+- GadgetSettingsProps component contract
+- useGadgetSetting hook: reactive read/write scoped to gadget namespace
+- Shared UI components: Switch, Slider, Section
+- Registration: [frontend.settings] in manifest
+- Settings reactivity: changes propagate to backend via on-setting-changed
+- Manifest defaults: [settings] section seeds values on first load
