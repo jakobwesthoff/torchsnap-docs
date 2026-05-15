@@ -9,12 +9,17 @@ interface Props {
 }
 
 const { dark, light, alt, maxWidth } = Astro.props;
+
+const darkDisplayWidth = Math.round(dark.width / 2);
+const darkDisplayHeight = Math.round(dark.height / 2);
+const lightDisplayWidth = Math.round(light.width / 2);
+const lightDisplayHeight = Math.round(light.height / 2);
 const style = maxWidth ? `max-width: ${maxWidth}` : undefined;
 ---
 
 <div class="screenshot" {style}>
-  <Image src={dark} alt={alt} class="only-dark" />
-  <Image src={light} alt={alt} class="only-light" />
+  <Image src={dark} alt={alt} class="only-dark" width={darkDisplayWidth} height={darkDisplayHeight} densities={[1, 2]} />
+  <Image src={light} alt={alt} class="only-light" width={lightDisplayWidth} height={lightDisplayHeight} densities={[1, 2]} />
 </div>
 
 <style>
