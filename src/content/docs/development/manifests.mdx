@@ -82,9 +82,10 @@ quick-open = { label = "Quick Open", default = "CmdOrCtrl+Shift+G" }
   Most sections are optional. A minimal manifest only needs `[gadget]`.
 </Aside>
 
-## `[gadget]`
+## Gadget identity
 
-This is the only required section. It tells the host who your gadget is, where
+The `[gadget]` section is the only required section. It tells the host who
+your gadget is, where
 to find its WASM binary, and how to display it in the settings UI. The `id` is
 particularly important: it determines the gadget's settings namespace
 (`gadgets.<id>.*`), its storage directory, and how other parts of the system
@@ -121,7 +122,7 @@ hyphens to underscores in crate names, so a crate named `my-gadget` produces
   ID conflicts as the gadget ecosystem grows.
 </Aside>
 
-## `[settings]`
+## Settings defaults
 
 Most gadgets have configurable options: retention periods, feature toggles, API
 tokens, display preferences. The `[settings]` section declares default values
@@ -156,7 +157,7 @@ to changes via
   A `set` function for the WASM side is planned.
 </Aside>
 
-## `[permissions]`
+## Permissions
 
 Gadgets run in a sandbox. By default, no host capability is accessible. The
 `[permissions]` section is where you declare what your gadget needs. If a
@@ -218,9 +219,10 @@ frecency = true
 website-metadata = true
 ```
 
-### `[permissions.opener]`
+### Opener
 
-Controls the [`opener`](/development/interfaces/imports/#opener) host import,
+The `[permissions.opener]` section controls the
+[`opener`](/development/interfaces/imports/#opener) host import,
 which lets gadgets open URLs in the browser, launch files with their default
 application, or reveal paths in the file manager. Each operation is gated
 separately, so a gadget that only opens web links does not need `open-path` or
@@ -247,9 +249,10 @@ open-path = true
 reveal-path = true
 ```
 
-### `[permissions.http]`
+### HTTP
 
-Controls the [`http`](/development/interfaces/imports/#http) host import, which
+The `[permissions.http]` section controls the
+[`http`](/development/interfaces/imports/#http) host import, which
 lets gadgets make synchronous HTTP requests. Gadgets that fetch data from web
 APIs, download databases, or call remote services declare their allowed origins
 here.
@@ -273,9 +276,10 @@ Use this only for gadgets that genuinely need to reach arbitrary endpoints.
 origins = ["https://api.example.com", "https://cdn.example.com"]
 ```
 
-### `[permissions.filesystem]`
+### Filesystem
 
-Controls the [`filesystem`](/development/interfaces/imports/#filesystem) host
+The `[permissions.filesystem]` section controls the
+[`filesystem`](/development/interfaces/imports/#filesystem) host
 import, which lets gadgets read files from the host filesystem. Gadgets that
 need to read configuration files, data directories, or log files declare which
 paths they may access here.
@@ -306,9 +310,10 @@ read = [
 ]
 ```
 
-### `[[permissions.command]]`
+### Command execution
 
-Controls the [`command`](/development/interfaces/imports/#command) host import,
+The `[[permissions.command]]` section controls the
+[`command`](/development/interfaces/imports/#command) host import,
 which lets gadgets run system processes. This is the most fine-grained
 permission: you specify not just which binary, but what argument patterns are
 allowed per position. A gadget granted `git log` cannot run `git push`.
@@ -392,10 +397,11 @@ These variables are also available at runtime through the
 [`path-resolver`](/development/interfaces/imports/#path-resolver) host import,
 so your gadget code can construct the same paths the permission rules reference.
 
-## `[storage.sql]`
+## SQL storage
 
 Gadgets that need persistent structured storage (clipboard history, calculation
-logs, cached API responses) can declare a SQLite database. The host manages the
+logs, cached API responses) can declare a SQLite database in the `[storage.sql]`
+section. The host manages the
 database lifecycle: it creates the file, applies your migration scripts in
 order, and makes it available through the
 [`sql-storage`](/development/interfaces/imports/#sql-storage) host import
@@ -419,7 +425,7 @@ The database is stored at the gadget's host-managed state directory, separate
 from the gadget's code. See [Packaging](/development/packaging/) for the
 storage layout.
 
-## `[[tasks]]`
+## Scheduled tasks
 
 Some gadgets need to run work periodically without user interaction: cleaning up
 old database rows, refreshing a cached dataset, syncing with an external
@@ -451,7 +457,7 @@ schedule = "0 */6 * * *"
   equivalent 5-field expression (`0 0 * * *`).
 </Aside>
 
-## `[frontend]`
+## Frontend bundles
 
 Gadgets that render custom UI in the launcher or provide their own settings
 panel ship [React](https://react.dev/) frontend bundles alongside the WASM
@@ -469,9 +475,10 @@ All paths are relative to the gadget root. See the
 | `settings-bundle` | string | ES module for the settings webview. Required if `[frontend.settings]` or settings-css are declared. |
 | `settings-css` | string | CSS file loaded alongside the settings bundle. |
 
-### `[frontend.views]`
+### Custom views
 
-When your gadget returns a [`CustomUi`](/development/search/#custom-and-inline-views)
+The `[frontend.views]` table maps view names to React components. When your
+gadget returns a [`CustomUi`](/development/search/#custom-and-inline-views)
 search response, the host needs to know which React component to mount. This
 table maps the view name you pass in your `ViewResponse` (e.g. `view:
 "history"`) to a named JavaScript export from `launcher-bundle`.
@@ -481,9 +488,9 @@ table maps the view name you pass in your `ViewResponse` (e.g. `view:
 history = "CalculatorView"
 ```
 
-### `[frontend.inline-views]`
+### Inline views
 
-Same concept as `[frontend.views]`, but for
+The `[frontend.inline-views]` table works the same way, but for
 [`InlineUi`](/development/search/#custom-and-inline-views) search responses.
 Inline views render above the result list rather than replacing it. The
 [Calculator](/start/gadgets/calculator/) uses this to show a quick result
@@ -494,9 +501,10 @@ preview when it detects a math expression during normal search.
 result = "CalculatorInline"
 ```
 
-### `[frontend.settings]`
+### Settings panel
 
-If your gadget has configurable options declared in `[settings]`, you
+The `[frontend.settings]` section registers the settings panel component. If
+your gadget has configurable options declared in `[settings]`, you
 probably want a settings panel so users can change them. This section points
 the host to the React component exported from `settings-bundle` that renders
 your gadget's settings UI. See
@@ -512,7 +520,7 @@ components.
 component = "MySettings"
 ```
 
-## `[shortcuts]`
+## Shortcuts
 
 Some gadgets benefit from global keyboard shortcuts that work even when the
 launcher is closed. The [Clipboard Manager](/start/gadgets/clipboard-manager/)
