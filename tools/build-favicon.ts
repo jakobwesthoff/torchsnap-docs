@@ -4,10 +4,14 @@
 // Small sizes (32 px tab icon, .ico) use the mascot on a transparent
 // background: trim → square-pad → resize.
 //
-// Large sizes (180 px apple-touch-icon, 192 px Android/PWA icon) place
-// the mascot on the brand orange gradient. Both iOS and Android apply
-// their own rounded masks at display time, so these are full opaque
-// squares — no pre-applied corner rounding.
+// The 180 px apple-touch-icon places the mascot on the brand orange
+// gradient. iOS applies its own rounded mask at display time, so this
+// is a full opaque square with no pre-applied corner rounding.
+//
+// The 192 px icon exists in two variants: a transparent one used as
+// rel="icon" (so browsers that pick the largest icon still get a clean
+// tab favicon), and a gradient "maskable" one referenced only from
+// manifest.json for Android/PWA home-screen use.
 //
 // The script shells out to `oxipng` at the end to losslessly crush
 // every generated PNG.
@@ -15,8 +19,9 @@
 // Output (all written to public/):
 //   favicon.ico          32×32 ICO (PNG payload)
 //   favicon-32.png       32×32 transparent
-//   apple-touch-icon.png 180×180 gradient background
-//   icon-192.png         192×192 gradient background
+//   apple-touch-icon.png         180×180 gradient background
+//   icon-192.png                 192×192 transparent
+//   icon-192-maskable.png        192×192 gradient background
 
 import sharp from "sharp";
 import { resolve, dirname } from "node:path";
@@ -153,10 +158,15 @@ const applePath = resolve(PUBLIC, "apple-touch-icon.png");
 await writeGradientIcon(mascot, 180, applePath);
 pngOutputs.push(applePath);
 
-// 192 px gradient — Android / PWA
-const androidPath = resolve(PUBLIC, "icon-192.png");
-await writeGradientIcon(mascot, 192, androidPath);
-pngOutputs.push(androidPath);
+// 192 px transparent — browser tab icon (largest rel="icon")
+const icon192Path = resolve(PUBLIC, "icon-192.png");
+await writeTransparent(mascot, 192, icon192Path);
+pngOutputs.push(icon192Path);
+
+// 192 px gradient — Android / PWA (referenced from manifest.json only)
+const maskablePath = resolve(PUBLIC, "icon-192-maskable.png");
+await writeGradientIcon(mascot, 192, maskablePath);
+pngOutputs.push(maskablePath);
 
 // favicon.ico from the 32 px PNG
 const png32 = await sharp(mascot).resize(32, 32).png().toBuffer();

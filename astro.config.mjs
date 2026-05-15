@@ -65,6 +65,13 @@ export default defineConfig({
             href: "/icon-192.png",
           },
         },
+        {
+          tag: "link",
+          attrs: {
+            rel: "manifest",
+            href: "/manifest.json",
+          },
+        },
       ],
       social: [],
       components: {
