@@ -62,7 +62,7 @@ export default defineConfig({
           items: [
             "start",
             "start/installation",
-            "start/configuration",
+            "start/settings",
             "start/keyboard-shortcuts",
             {
               label: "Gadgets",
