@@ -1,0 +1,27 @@
+---
+title: Exports
+description: Complete reference for all guest-implemented interfaces.
+sidebar:
+  order: 2
+---
+
+TODO: Exhaustive reference for every guest export.
+
+One section per interface with WIT contract, SDK macros, and usage examples:
+
+- lifecycle: enable, disable, on-setting-changed
+  - enable() returns result: err(string) disables the gadget
+  - disable() cleanup
+  - on-setting-changed(key, value): relative keys, JSON-encoded values
+  - CoalescingDispatcher deduplication (brief, from gadget perspective)
+- search: entries, search, execute (brief + cross-link to Search concept page)
+  - catalog-entry, scored-entry, search-response, post-action
+  - Full WIT contract with notes on each variant
+- messaging: handle-message(method, payload) (brief + cross-link to Frontend/Messaging)
+  - JSON-encoded strings, request/response only for WASM
+  - SDK helpers: parse\_payload, to\_response
+  - impl\_noop\_messaging! for gadgets without RPC
+- tasks: run-task(task-id)
+  - Cron scheduling via manifest [[tasks]] entries
+  - Best-effort: errors logged, gadget not disabled
+  - impl\_noop\_tasks! for gadgets without scheduled work

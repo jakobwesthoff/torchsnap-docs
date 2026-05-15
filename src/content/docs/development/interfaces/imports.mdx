@@ -1,0 +1,25 @@
+---
+title: Imports
+description: Complete reference for all host-provided interfaces.
+sidebar:
+  order: 1
+---
+
+TODO: Exhaustive reference for every host import.
+
+One section per interface with WIT contract, SDK helpers, and usage examples:
+
+- logging: log levels, structured metadata, timing spans
+- settings: get/get\_or/get\_or\_else, JSON-encoded values
+- assets: reading bundled files from the gadget archive
+- platform: OS and architecture detection
+- path-resolver: substitution variables
+- clipboard: write-text (write-only, no read)
+- frecency: is-enabled, top-items (read-only, host tracks automatically)
+- sql-storage: connection resource, execute/query, migrations, sdk Row helpers
+- http: fetch with http-request/http-response, error variants, origin gating
+- filesystem: read-file, file-exists, metadata, glob allowlist
+- opener: open-url, open-path, reveal-path
+- command: run with argv constraints, command-options, command-result
+- website-metadata: lookup with cached/blocking modes, cache-entry, sdk helpers
+- types: shared types (entry-icon, action-id, action) used across interfaces

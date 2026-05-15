@@ -78,7 +78,16 @@ export default defineConfig({
             "development/manifests",
             "development/search",
             "development/permissions",
-            "development/host-interfaces",
+            {
+              label: "Interfaces",
+              items: [
+                {
+                  autogenerate: {
+                    directory: "development/interfaces",
+                  },
+                },
+              ],
+            },
             {
               label: "Frontend",
               items: [
