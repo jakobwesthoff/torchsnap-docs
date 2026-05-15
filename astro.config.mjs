@@ -1,6 +1,7 @@
 // @ts-check
 import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
+import starlightLlmsTxt from "starlight-llms-txt";
 import icon from "astro-icon";
 import tailwindcss from "@tailwindcss/vite";
 
@@ -27,6 +28,7 @@ latte.colors["terminal.background"] = "#f9fafb";
 latte.colors["titleBar.activeForeground"] = "#ea580c";
 
 export default defineConfig({
+  site: "https://docs.torchsnap.app",
   vite: {
     plugins: [tailwindcss()],
   },
@@ -72,6 +74,13 @@ export default defineConfig({
         Footer: "./src/components/Footer.astro",
         SocialIcons: "./src/components/SocialIcons.astro",
       },
+      plugins: [
+        starlightLlmsTxt({
+          description:
+            "Documentation for Torchsnap, a keyboard-driven launcher for macOS with sandboxed WebAssembly gadgets.",
+          exclude: ["style-reference"],
+        }),
+      ],
       expressiveCode: {
         themes: [macchiato, latte],
         styleOverrides: {
@@ -103,7 +112,6 @@ export default defineConfig({
             "development/hello-world",
             "development/search",
             "development/manifests",
-            "development/permissions",
             {
               label: "Interfaces",
               items: [

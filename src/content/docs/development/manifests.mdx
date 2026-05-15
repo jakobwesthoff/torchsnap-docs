@@ -5,18 +5,539 @@ sidebar:
   order: 3
 ---
 
-TODO: Complete manifest.toml reference.
+import { Aside } from '@astrojs/starlight/components';
 
-- [gadget] section: id, name, description, version, wasm, icon, prefixes
-- [settings] section: default values seeded on first load
-- [permissions] section: top-level boolean flags (clipboard, frecency, website-metadata)
-- [permissions.opener]: schemes, open-path, reveal-path
-- [permissions.http]: origins allowlist
-- [permissions.fs]: read globs with substitution variables
-- [[permissions.command]]: per-binary argv-shape rules
-- [storage.sql]: migrations list
-- [[tasks]]: cron-scheduled background tasks
-- [frontend]: launcher-bundle, launcher-css, settings-bundle, settings-css
-- [frontend.views] and [frontend.inline-views]: named view registration
-- [frontend.settings]: settings component registration
-- [shortcuts]: global keyboard shortcuts (not yet available for WASM)
+Every gadget must contain a `manifest.toml` at its root. The file uses the
+[TOML](https://toml.io/) format. This is the main entry point the host reads
+when discovering a gadget. Before any WASM code runs, the host parses this file
+to learn what the gadget is, what capabilities it needs, where its WASM binary
+and frontend bundles are located, and how to configure its sandbox. A gadget
+without a valid `manifest.toml` is ignored during discovery.
+
+The following example shows all available sections. Each section and its fields
+are explained in detail below.
+
+```toml title="manifest.toml"
+[gadget]
+id = "my-gadget"
+name = "My Gadget"
+description = "Does something useful"
+version = "0.1.0"
+wasm = "my_gadget.wasm"
+icon = "heroicons:sparkles"
+prefixes = ["!mg"]
+
+[settings]
+enabled_feature = true
+threshold = 42
+
+[permissions]
+clipboard = true
+frecency = true
+
+[permissions.opener]
+schemes = ["https", "http"]
+open-path = true
+
+[permissions.http]
+origins = ["https://api.example.com"]
+
+[permissions.filesystem]
+read = ["${xdg-config}/myapp/config.toml"]
+
+[[permissions.command]]
+binary = "my-tool"
+argv = [
+  { kind = "literal", value = "run" },
+  { kind = "rest", constraint = { kind = "any-string" } },
+]
+
+[storage.sql]
+migrations = ["migrations/001_init.sql"]
+
+[[tasks]]
+id = "cleanup"
+schedule = "*/30 * * * *"
+
+[frontend]
+launcher-bundle = "frontend/dist/launcher.js"
+launcher-css = "frontend/dist/launcher.css"
+settings-bundle = "frontend/dist/settings.js"
+settings-css = "frontend/dist/settings.css"
+
+[frontend.views]
+main = "MainView"
+
+[frontend.inline-views]
+preview = "PreviewInline"
+
+[frontend.settings]
+component = "MySettings"
+
+[shortcuts]
+quick-open = { label = "Quick Open", default = "CmdOrCtrl+Shift+G" }
+```
+
+<Aside type="tip">
+  Most sections are optional. A minimal manifest only needs `[gadget]`.
+</Aside>
+
+## `[gadget]`
+
+This is the only required section. It tells the host who your gadget is, where
+to find its WASM binary, and how to display it in the settings UI. The `id` is
+particularly important: it determines the gadget's settings namespace
+(`gadgets.<id>.*`), its storage directory, and how other parts of the system
+reference it. Choose it carefully, because changing it later means losing
+existing user settings and data.
+
+All fields except `prefixes` are required.
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | string | Unique identifier. Lowercase alphanumeric, hyphens, and dots only. No leading or trailing hyphen. Should follow reverse-domain convention (see below). |
+| `name` | string | Human-readable display name shown in settings. |
+| `description` | string | Short description shown in the settings header. |
+| `version` | string | Version string (e.g. `"0.1.0"`). |
+| `wasm` | string | Path to the compiled WASM binary, relative to the gadget root. |
+| `icon` | string | Either `"heroicons:<name>"` for a [Heroicons](https://heroicons.com/) icon, or a relative path to a bundled asset (e.g. `"assets/icon.svg"`). |
+| `prefixes` | list of strings | Search prefixes for exclusive [query routing](/development/search/#prefix-routing). Default: `[]`. |
+
+The `wasm` field must match the compiled binary filename. Cargo converts
+hyphens to underscores in crate names, so a crate named `my-gadget` produces
+`my_gadget.wasm`.
+
+{/* TODO: Update the ID naming convention once existing bundled gadgets are
+    migrated to the reverse-domain format. */}
+
+<Aside type="note" title="Gadget ID naming convention">
+  Gadget IDs should follow a reverse-domain naming convention to avoid
+  collisions between gadgets from different authors. Bundled Torchsnap gadgets
+  use the `app.torchsnap.*` prefix (e.g. `app.torchsnap.calculator`).
+  Third-party gadgets should use a domain they control (e.g.
+  `io.example.my-tool`).
+
+  This convention is not yet enforced by the host, but adopting it now prevents
+  ID conflicts as the gadget ecosystem grows.
+</Aside>
+
+## `[settings]`
+
+Most gadgets have configurable options: retention periods, feature toggles, API
+tokens, display preferences. The `[settings]` section declares default values
+for these options. When the gadget is loaded for the first time, these defaults
+are written into the settings store. Once the user changes a value through the
+settings panel, the user's value takes precedence and the manifest default is
+never applied again for that key.
+
+Keys are arbitrary (camelCase by convention). Values can be any JSON-compatible
+type: booleans, integers, floats, strings.
+
+```toml title="manifest.toml"
+[settings]
+heuristicEnabled = true
+retentionDays = 30
+greeting = "Hello!"
+```
+
+Defaults are seeded into the settings store on first load. Existing user values
+are never overwritten. The gadget reads settings at runtime through the
+[`settings`](/development/interfaces/imports/#settings) host import and reacts
+to changes via
+[`on_setting_changed`](/development/interfaces/exports/#lifecycle).
+
+{/* TODO: Update this aside once a settings write function is added to the
+    WIT settings interface. */}
+
+<Aside type="caution" title="TODO: Settings are read-only from WASM">
+  The WIT `settings` interface currently only provides a `get` function. WASM
+  gadgets cannot write settings programmatically. Settings can only be changed
+  by the user through the frontend settings panel (via `useGadgetSetting`).
+  A `set` function for the WASM side is planned.
+</Aside>
+
+## `[permissions]`
+
+Gadgets run in a sandbox. By default, no host capability is accessible. The
+`[permissions]` section is where you declare what your gadget needs. If a
+capability is not listed here, the host blocks it at runtime with a permission
+error. This design lets users audit what a gadget can do before installing it.
+
+{/* TODO: Update once the permission UI is implemented in the settings panel
+    and the install flow. */}
+
+<Aside type="note" title="Planned: permission transparency in the UI">
+  In the future, a gadget's declared permissions will be shown automatically in
+  its settings page (alongside the enable toggle) so users can review them at
+  any time. When installing a third-party gadget, the install flow will present
+  the requested permissions in a structured, readable format so the user can
+  make an informed decision before granting access.
+</Aside>
+
+### How enforcement works
+
+When the host instantiates a gadget, it reads the `[permissions]` section and
+builds a compiled permission object for each declared capability. These objects
+are stored on the WASM instance and checked on every host import call. The
+enforcement flow is:
+
+1. The manifest declares what the gadget needs.
+2. The host parses and compiles the declarations at instantiation time
+   (glob patterns are compiled, regexes are anchored, origins are normalized).
+3. Every host import call checks the compiled permission object before doing
+   any work. If the capability was not declared at all, the call returns a
+   `permission-denied` error immediately.
+4. For scoped permissions (HTTP, filesystem, command, opener), the host runs
+   additional checks against the specific request (URL origin, file path,
+   binary + arguments) using the compiled rules.
+
+A few interfaces are always available and need no declaration:
+[`logging`](/development/interfaces/imports/#logging),
+[`assets`](/development/interfaces/imports/#assets), and
+[`platform`](/development/interfaces/imports/#platform). Everything else
+requires an explicit grant.
+
+### Boolean flags
+
+Some capabilities are simple on/off grants. The gadget either has access or it
+doesn't, with no further scoping. All default to `false`.
+
+| Key | Capability |
+|---|---|
+| `clipboard` | Write text to the system clipboard via [`clipboard`](/development/interfaces/imports/#clipboard). Read access is intentionally not exposed. |
+| `frecency` | Read the gadget's own frecency ranking data via [`frecency`](/development/interfaces/imports/#frecency). The host records frecency automatically during execution; this flag only controls whether the gadget can query its own rankings. |
+| `website-metadata` | Look up website titles and favicons via [`website-metadata`](/development/interfaces/imports/#website-metadata). The cache is shared across all gadgets. |
+| `settings` | Access the gadget's own settings namespace via [`settings`](/development/interfaces/imports/#settings). |
+| `sql-storage` | Use a per-gadget SQLite database via [`sql-storage`](/development/interfaces/imports/#sql-storage). Also requires a `[storage.sql]` section declaring migrations. |
+| `path-resolver` | Resolve substitution variables via [`path-resolver`](/development/interfaces/imports/#path-resolver). |
+
+```toml title="manifest.toml"
+[permissions]
+clipboard = true
+frecency = true
+website-metadata = true
+```
+
+### `[permissions.opener]`
+
+Controls the [`opener`](/development/interfaces/imports/#opener) host import,
+which lets gadgets open URLs in the browser, launch files with their default
+application, or reveal paths in the file manager. Each operation is gated
+separately, so a gadget that only opens web links does not need `open-path` or
+`reveal-path`.
+
+At call time, the host checks:
+- `open_url`: parses the URL and compares its scheme (case-insensitive) against
+  the `schemes` list. Unrecognized schemes are blocked.
+- `open_path` / `reveal_path`: pure boolean gate. If `false`, the call is
+  rejected immediately regardless of which path is requested.
+
+At least one field must be non-default.
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `schemes` | list of strings | `[]` | URL schemes allowed for `open_url` (e.g. `"https"`, `"http"`, `"mailto"`). |
+| `open-path` | bool | `false` | Allow opening filesystem paths with the OS default handler. |
+| `reveal-path` | bool | `false` | Allow revealing filesystem paths in the file manager. |
+
+```toml title="manifest.toml"
+[permissions.opener]
+schemes = ["https", "http"]
+open-path = true
+reveal-path = true
+```
+
+### `[permissions.http]`
+
+Controls the [`http`](/development/interfaces/imports/#http) host import, which
+lets gadgets make synchronous HTTP requests. Gadgets that fetch data from web
+APIs, download databases, or call remote services declare their allowed origins
+here.
+
+At call time, the host parses the request URL and extracts its origin (scheme +
+host + non-default port). This origin is compared against the allowed list. A
+request to `https://api.example.com/v1/data` produces the origin
+`https://api.example.com`, which must be in the list. Port normalization is
+automatic: `https://example.com:443` and `https://example.com` are the same
+origin.
+
+The special value `"*"` disables origin checking entirely (trust-all mode).
+Use this only for gadgets that genuinely need to reach arbitrary endpoints.
+
+| Field | Type | Description |
+|---|---|---|
+| `origins` | list of strings | Allowed origins. Normalized at parse time. Non-empty. |
+
+```toml title="manifest.toml"
+[permissions.http]
+origins = ["https://api.example.com", "https://cdn.example.com"]
+```
+
+### `[permissions.filesystem]`
+
+Controls the [`filesystem`](/development/interfaces/imports/#filesystem) host
+import, which lets gadgets read files from the host filesystem. Gadgets that
+need to read configuration files, data directories, or log files declare which
+paths they may access here.
+
+At call time, the host performs three steps before allowing a read:
+1. **Validation**: rejects paths that are empty, relative, or contain `..`,
+   `.`, `//`, or NUL bytes.
+2. **Canonicalization**: resolves all symlinks in the request path via
+   `std::fs::canonicalize`, producing the real filesystem path.
+3. **Matching**: checks the real path against the compiled glob set built from
+   the manifest patterns. A symlink inside an allowed directory that points
+   outside the allow set is rejected because the resolved real path no longer
+   matches.
+
+Glob syntax: `*` matches within a single path segment, `**` matches across
+segments. Character classes and brace alternation are not supported.
+
+| Field | Type | Description |
+|---|---|---|
+| `read` | list of strings | Path patterns. Supports globs and substitution variables. Non-empty. |
+
+```toml title="manifest.toml"
+[permissions.filesystem]
+read = [
+    "${xdg-config}/myapp/config.toml",
+    "/var/lib/myapp/data/*.json",
+    "${home}/.config/myapp/**",
+]
+```
+
+### `[[permissions.command]]`
+
+Controls the [`command`](/development/interfaces/imports/#command) host import,
+which lets gadgets run system processes. This is the most fine-grained
+permission: you specify not just which binary, but what argument patterns are
+allowed per position. A gadget granted `git log` cannot run `git push`.
+
+At call time, the host matches the binary name (exact string equality) and then
+walks the argument list position by position against the compiled constraints.
+Without a trailing `rest` constraint, the argument count must match exactly.
+With `rest`, the prefix must match and every trailing argument must satisfy the
+inner constraint. If no rule matches, the call is rejected before the process
+is spawned.
+
+Multiple entries for different binaries are allowed. Same-binary entries with
+overlapping argument shapes are rejected at parse time to prevent ambiguous
+matching.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `binary` | string | yes | Executable name or absolute path. |
+| `argv` | list of constraints | no | Per-position argument rules. Default: `[]` (zero arguments only). |
+| `cwd` | string | no | Working directory. Supports substitution variables. |
+| `timeout-ms-max` | integer | no | Hard ceiling on per-call timeout in milliseconds. |
+| `max-output-bytes` | integer | no | Hard ceiling on captured stdout + stderr bytes. |
+| `max-stdin-bytes` | integer | no | Hard ceiling on stdin input bytes. |
+
+#### Argument constraints
+
+Each element in `argv` is an inline table with a `kind` field:
+
+| Kind | Fields | Description |
+|---|---|---|
+| `literal` | `value` | Exact string match. Supports substitution variables. |
+| `enum` | `values` | Argument must equal one of the listed strings. |
+| `glob` | `pattern` | Argument must match the glob pattern. |
+| `regex` | `pattern` | Argument must match the regex (anchored to the full string automatically). |
+| `path-under` | `root` | Argument must canonicalize to a path under `root`. Symlinks are resolved before checking. Supports substitution variables. |
+| `any-string` | (none) | Accepts any value unconditionally. |
+| `rest` | `constraint` | Applies the inner constraint to all remaining positions. Must be the last element in the list. |
+
+```toml title="manifest.toml"
+[[permissions.command]]
+binary = "git"
+argv = [
+    { kind = "literal", value = "log" },
+    { kind = "rest", constraint = { kind = "any-string" } },
+]
+
+[[permissions.command]]
+binary = "mdfind"
+argv = [
+    { kind = "literal", value = "kMDItemContentType == 'com.apple.application-bundle'" },
+]
+```
+
+<Aside type="note">
+  No shell wrapping is applied. Arguments go directly to the process via
+  `Command::new(binary).args(argv)`. There is no `/bin/sh -c` step and no
+  shell tokenization. This is intentional: shell wrapping would bypass the
+  per-position argument matching.
+</Aside>
+
+### Substitution variables
+
+Several permission fields support `$\{...\}` substitution variables that
+resolve to host-specific paths at parse time. This lets manifests reference
+directories like the user's home or the gadget's own data directory without
+hardcoding platform-specific paths.
+
+| Variable | Resolves to |
+|---|---|
+| `$\{gadget-data\}` | The gadget's host-managed state directory. |
+| `$\{gadget-archive\}` | The gadget's code root (archive or dev directory). |
+| `$\{home\}` | The user's home directory. |
+| `$\{xdg-config\}` | XDG config directory (`~/.config` on Linux, `~/Library/Application Support` on macOS). |
+| `$\{xdg-data\}` | XDG data directory (`~/.local/share` on Linux, `~/Library/Application Support` on macOS). |
+
+Recognized in: `[permissions.filesystem] read` patterns,
+`[[permissions.command]]` `cwd`, `literal` values, `enum` values, and
+`path-under` roots.
+
+These variables are also available at runtime through the
+[`path-resolver`](/development/interfaces/imports/#path-resolver) host import,
+so your gadget code can construct the same paths the permission rules reference.
+
+## `[storage.sql]`
+
+Gadgets that need persistent structured storage (clipboard history, calculation
+logs, cached API responses) can declare a SQLite database. The host manages the
+database lifecycle: it creates the file, applies your migration scripts in
+order, and makes it available through the
+[`sql-storage`](/development/interfaces/imports/#sql-storage) host import
+before your `enable()` runs. You write standard SQL migration files; the host
+handles versioning. Migrations must be additive, as the host does not support
+rollbacks.
+
+| Field | Type | Description |
+|---|---|---|
+| `migrations` | list of strings | Ordered list of SQL file paths relative to the gadget root. |
+
+```toml title="manifest.toml"
+[storage.sql]
+migrations = [
+    "migrations/001_init.sql",
+    "migrations/002_add_index.sql",
+]
+```
+
+The database is stored at the gadget's host-managed state directory, separate
+from the gadget's code. See [Packaging](/development/packaging/) for the
+storage layout.
+
+## `[[tasks]]`
+
+Some gadgets need to run work periodically without user interaction: cleaning up
+old database rows, refreshing a cached dataset, syncing with an external
+service. Since WASM gadgets cannot spawn their own threads or timers, the host
+provides a cron-based scheduler. Each `[[tasks]]` entry declares a task ID and
+a schedule. The host invokes the gadget's
+[`run_task`](/development/interfaces/exports/#tasks) export at the configured
+times. Task errors are logged but do not disable the gadget. Duplicate task IDs
+within a gadget are rejected at parse time.
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | string | Unique task identifier passed to `run_task`. |
+| `schedule` | string | 5-field POSIX cron expression (`minute hour day month weekday`). |
+
+```toml title="manifest.toml"
+[[tasks]]
+id = "retention-cleanup"
+schedule = "*/30 * * * *"
+
+[[tasks]]
+id = "sync"
+schedule = "0 */6 * * *"
+```
+
+<Aside type="note">
+  Sub-minute scheduling is not supported. The smallest interval is one minute
+  (`* * * * *`). Quartz-style macros like `@daily` are not recognized; use the
+  equivalent 5-field expression (`0 0 * * *`).
+</Aside>
+
+## `[frontend]`
+
+Gadgets that render custom UI in the launcher or provide their own settings
+panel ship [React](https://react.dev/) frontend bundles alongside the WASM
+binary. This section tells the host where to find those bundles and which
+JavaScript exports map to which views. Gadgets that only return search results
+without custom UI do not need this section at all.
+
+All paths are relative to the gadget root. See the
+[Frontend](/development/frontend/) section for building these bundles.
+
+| Field | Type | Description |
+|---|---|---|
+| `launcher-bundle` | string | ES module for the launcher webview. Required if views, inline-views, or launcher-css are declared. |
+| `launcher-css` | string | CSS file loaded alongside the launcher bundle. |
+| `settings-bundle` | string | ES module for the settings webview. Required if `[frontend.settings]` or settings-css are declared. |
+| `settings-css` | string | CSS file loaded alongside the settings bundle. |
+
+### `[frontend.views]`
+
+When your gadget returns a [`CustomUi`](/development/search/#custom-and-inline-views)
+search response, the host needs to know which React component to mount. This
+table maps the view name you pass in your `ViewResponse` (e.g. `view:
+"history"`) to a named JavaScript export from `launcher-bundle`.
+
+```toml title="manifest.toml"
+[frontend.views]
+history = "CalculatorView"
+```
+
+### `[frontend.inline-views]`
+
+Same concept as `[frontend.views]`, but for
+[`InlineUi`](/development/search/#custom-and-inline-views) search responses.
+Inline views render above the result list rather than replacing it. The
+[Calculator](/start/gadgets/calculator/) uses this to show a quick result
+preview when it detects a math expression during normal search.
+
+```toml title="manifest.toml"
+[frontend.inline-views]
+result = "CalculatorInline"
+```
+
+### `[frontend.settings]`
+
+If your gadget has configurable options declared in `[settings]`, you
+probably want a settings panel so users can change them. This section points
+the host to the React component exported from `settings-bundle` that renders
+your gadget's settings UI. See
+[Settings Panels](/development/frontend/settings-panels/) for building these
+components.
+
+| Field | Type | Description |
+|---|---|---|
+| `component` | string | Named JavaScript export for the settings panel. |
+
+```toml title="manifest.toml"
+[frontend.settings]
+component = "MySettings"
+```
+
+## `[shortcuts]`
+
+Some gadgets benefit from global keyboard shortcuts that work even when the
+launcher is closed. The [Clipboard Manager](/start/gadgets/clipboard-manager/)
+uses this to let users open the clipboard history with
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> from anywhere. This section
+declares those shortcuts. The host registers them as system-wide hotkeys when
+the gadget is enabled, and users can change the key combination in settings.
+
+| Field | Type | Description |
+|---|---|---|
+| `label` | string | Description shown in settings. |
+| `default` | string | Initial key combination (e.g. `"CmdOrCtrl+Shift+V"`). Users can change it in settings. |
+
+```toml title="manifest.toml"
+[shortcuts]
+open-clipboard = { label = "Open Clipboard History", default = "CmdOrCtrl+Shift+V" }
+```
+
+{/* TODO: WASM gadgets cannot currently handle shortcut activations. The
+    manifest parser reads [shortcuts] but WasmGadgetBridge does not implement
+    shortcuts() or handle_shortcut(). Update this section once wired up. */}
+
+<Aside type="caution" title="TODO: WASM shortcut support">
+  The manifest parser reads `[shortcuts]`, but WASM gadgets cannot currently
+  receive shortcut activations. The host-side wiring (`handle_shortcut`) is
+  not yet implemented for the WASM bridge. This section documents the manifest
+  syntax for when support is added.
+</Aside>
