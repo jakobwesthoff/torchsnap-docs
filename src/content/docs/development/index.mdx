@@ -76,76 +76,31 @@ reads to declared glob patterns, and command execution to per-binary
 argv-shape rules. See [Permissions](/development/permissions/) for the full
 model.
 
-## The Rust SDK
+## Rust SDK
+
+The Rust SDK covers the gadget's core logic: search, execution, lifecycle,
+and communication with host capabilities.
 
 Any language that can compile to `wasm32-wasip2` and produce a valid component
 can be used to write gadgets. The WIT contract is language-agnostic, and the
-host does not care what language produced the WASM binary. For Rust, the
-`torchsnap-gadget-sdk` crate provides a convenience layer: it handles WIT
-binding generation, adds ergonomic helpers on top of the raw interfaces, and is
-what all bundled gadgets are built with. Gadgets using the SDK import
-everything through its prelude:
+host does not care what language produced the WASM binary.
 
-```rust
-use torchsnap_gadget_sdk::prelude::*;
-```
-
-This brings the four guest traits
+For [Rust](https://www.rust-lang.org/), the `torchsnap-gadget-sdk` crate
+provides a convenience layer: it handles WIT binding generation and adds
+ergonomic helpers on top of the raw interfaces. Its prelude brings the four
+guest traits
 ([`LifecycleGuest`](/development/interfaces/exports/#lifecycle),
 [`SearchGuest`](/development/interfaces/exports/#search),
 [`MessagingGuest`](/development/interfaces/exports/#messaging),
 [`TasksGuest`](/development/interfaces/exports/#tasks)), all search-related
-types, host import functions, and the registration macros into scope.
+types, host import functions, and registration macros into scope. All bundled
+gadgets are built with it. The [Getting Started](/development/hello-world/)
+tutorial walks through building a gadget with the SDK step by step.
 
-A minimal gadget looks like this:
+## React SDK
 
-```rust title="src/lib.rs"
-use torchsnap_gadget_sdk::prelude::*;
-
-struct MyGadget;
-define_gadget!(MyGadget);
-impl_noop_messaging!(MyGadget);
-impl_noop_tasks!(MyGadget);
-
-impl LifecycleGuest for MyGadget {
-    fn enable() -> Result<(), String> {
-        Ok(())
-    }
-
-    fn disable() {}
-
-    fn on_setting_changed(_key: String, _value: String) {}
-}
-
-impl SearchGuest for MyGadget {
-    fn entries() -> Vec<CatalogEntry> {
-        vec![CatalogEntry {
-            id: "hello".into(),
-            title: "Hello World".into(),
-            subtitle: Some("My first gadget".into()),
-            icon: Some(EntryIcon::HeroIcon("hand-raised".into())),
-            keywords: vec![],
-            actions: vec![Action {
-                id: ActionId::Open,
-                label: "Greet".into(),
-            }],
-        }]
-    }
-
-    fn search(_query: String, _matched_prefix: Option<String>) -> SearchResponse {
-        SearchResponse::Nothing
-    }
-
-    fn execute(_entry: ScoredEntry, _action_id: ActionId) -> Result<PostAction, String> {
-        Ok(PostAction::Dismiss)
-    }
-}
-```
-
-The [Getting Started](/development/hello-world/) tutorial walks through every
-part of this example in detail.
-
-## Frontend SDK
+The React SDK covers the gadget's UI: custom views rendered inside the
+launcher and settings panels for configuration.
 
 Gadgets that only provide search results through the [catalog or query](/development/search/) interface
 do not need a frontend at all. A frontend is only required for gadgets that
