@@ -1,0 +1,172 @@
+---
+title: Commands
+description: Complete reference for all Control API methods, parameters, and error codes.
+sidebar:
+  order: 1
+---
+
+All commands follow the [JSON-RPC 2.0](https://www.jsonrpc.org/specification)
+request/response format described in the [Introduction](/control-api/). The
+examples below use `$SOCK` as a shorthand for the socket path:
+
+```bash
+SOCK="$HOME/Library/Application Support/app.torchsnap/control.sock"
+```
+
+## `show`
+
+Make the launcher window visible. Positions it on the monitor under the cursor,
+matching the behavior of the global keyboard shortcut.
+
+**Parameters:** none
+
+```bash
+echo '{"jsonrpc":"2.0","id":1,"method":"show"}' | socat - UNIX-CONNECT:"$SOCK"
+```
+
+```json title="Response"
+{"jsonrpc": "2.0", "id": 1, "result": {"ok": true}}
+```
+
+## `hide`
+
+Hide the launcher window. The search query, selection, and any active gadget
+view are cleared when the window loses focus.
+
+**Parameters:** none
+
+```bash
+echo '{"jsonrpc":"2.0","id":1,"method":"hide"}' | socat - UNIX-CONNECT:"$SOCK"
+```
+
+```json title="Response"
+{"jsonrpc": "2.0", "id": 1, "result": {"ok": true}}
+```
+
+## `toggle`
+
+Toggle the launcher's visibility. If hidden, shows it. If visible, dismisses
+it — clearing the query and selection, just like pressing <kbd>Escape</kbd>.
+This matches the behavior of the global keyboard shortcut.
+
+**Parameters:** none
+
+```bash
+echo '{"jsonrpc":"2.0","id":1,"method":"toggle"}' | socat - UNIX-CONNECT:"$SOCK"
+```
+
+```json title="Response"
+{"jsonrpc": "2.0", "id": 1, "result": {"ok": true}}
+```
+
+## `dismiss`
+
+Hide the launcher and explicitly reset its state — clears the search query,
+selection, and any active gadget view. This matches the behavior of pressing
+<kbd>Escape</kbd> in the launcher. Prefer `dismiss` over `hide` when the intent
+is to close the launcher cleanly.
+
+**Parameters:** none
+
+```bash
+echo '{"jsonrpc":"2.0","id":1,"method":"dismiss"}' | socat - UNIX-CONNECT:"$SOCK"
+```
+
+```json title="Response"
+{"jsonrpc": "2.0", "id": 1, "result": {"ok": true}}
+```
+
+## `query`
+
+Set the search input text. The launcher's search pipeline runs automatically
+after the text is set, just as if the user had typed it. If the launcher is
+not visible, the query is set but no results are shown until `show` or `toggle`
+is called.
+
+**Parameters:**
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `text` | string | yes | The search query text. |
+
+```bash
+echo '{"jsonrpc":"2.0","id":1,"method":"query","params":{"text":"firefox"}}' \
+  | socat - UNIX-CONNECT:"$SOCK"
+```
+
+```json title="Response"
+{"jsonrpc": "2.0", "id": 1, "result": {"ok": true}}
+```
+
+Returns error code `-1` if the `text` parameter is missing.
+
+## `status`
+
+Report the current launcher state.
+
+**Parameters:** none
+
+| Field | Type | Description |
+|---|---|---|
+| `visible` | boolean | Whether the launcher window is currently visible. |
+
+```bash
+echo '{"jsonrpc":"2.0","id":1,"method":"status"}' | socat - UNIX-CONNECT:"$SOCK"
+```
+
+```json title="Response"
+{"jsonrpc": "2.0", "id": 1, "result": {"visible": false}}
+```
+
+## Error codes
+
+### Protocol errors
+
+Returned by the JSON-RPC framing layer before any command handler runs.
+
+| Code | Meaning |
+|---|---|
+| `-32700` | Parse error — the request is not valid JSON. |
+| `-32600` | Invalid request — missing `method` field or malformed envelope. |
+| `-32601` | Method not found — no handler registered for the given method name. |
+
+```json title="Example"
+{"jsonrpc": "2.0", "id": 1, "error": {"code": -32601, "message": "Method not found: foo"}}
+```
+
+### Application errors
+
+Returned by individual command handlers.
+
+| Code | Meaning |
+|---|---|
+| `-1` | Invalid state — a precondition is not met or a required parameter is missing. |
+| `-3` | Internal error — an unexpected failure in the handler. |
+
+## Scripting examples
+
+### Show, search, then dismiss
+
+```bash
+{
+  echo '{"jsonrpc":"2.0","id":1,"method":"show"}'
+  sleep 0.5
+  echo '{"jsonrpc":"2.0","id":2,"method":"query","params":{"text":"calculator"}}'
+  sleep 2
+  echo '{"jsonrpc":"2.0","id":3,"method":"dismiss"}'
+} | socat - UNIX-CONNECT:"$SOCK"
+```
+
+### Check if the launcher is visible
+
+```bash
+VISIBLE=$(echo '{"jsonrpc":"2.0","id":1,"method":"status"}' \
+  | socat - UNIX-CONNECT:"$SOCK" \
+  | jq -r '.result.visible')
+
+if [ "$VISIBLE" = "true" ]; then
+  echo "Launcher is visible"
+else
+  echo "Launcher is hidden"
+fi
+```

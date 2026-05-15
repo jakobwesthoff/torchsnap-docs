@@ -104,7 +104,7 @@ export default defineConfig({
         },
         {
           label: "Control API",
-          items: ["control-api"],
+          items: ["control-api", "control-api/commands"],
         },
       ],
     }),

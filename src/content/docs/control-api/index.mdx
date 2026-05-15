@@ -5,16 +5,114 @@ sidebar:
   order: 0
 ---
 
-TODO: Control API documentation.
+import { Aside } from '@astrojs/starlight/components';
+import Screenshot from '../../../components/Screenshot.astro';
+import settingsDark from '../../../assets/screenshots/settings-control-api-dark.png';
+import settingsLight from '../../../assets/screenshots/settings-control-api-light.png';
 
-- What it is: JSON-RPC 2.0 over Unix domain socket for external automation
-- Enabling via Settings → General → Control API toggle
-- Socket path per platform (macOS, Linux)
-- Connecting with `socat`
-- Protocol: newline-delimited JSON-RPC 2.0
-- API methods: `show`, `hide`, `toggle`, `dismiss`, `query`, `status`
-- Error codes (protocol and application)
-- Multiple client support
-- Scripting examples
+The Control API lets external programs drive Torchsnap over a local Unix
+domain socket. Show and hide the launcher, set the search query, check
+visibility state — all from shell scripts, automation tools, or custom
+integrations.
 
-Source material: `torchsnap/docs/control-api.md`
+<Aside type="note">
+  The Control API is still a work in progress. It was originally created for
+  memory benchmark automation and currently exposes a small set of commands.
+  Additional commands may be added over time. If you have a use case that needs
+  a command that doesn't exist yet, PRs and feature requests are welcome on
+  [GitHub](https://github.com/jakobwesthoff/torchsnap).
+</Aside>
+
+## Enabling the Control API
+
+The Control API is disabled by default. To enable it, open
+[Settings](/start/settings/) and toggle **Control API** on under the
+**Advanced** section in **General**.
+
+<Screenshot dark={settingsDark} light={settingsLight} alt="General settings showing the Control API toggle under the Advanced section" maxWidth="600px" />
+
+Once enabled, Torchsnap opens a Unix domain socket that accepts connections
+immediately. Turning the toggle off closes the socket and disconnects all
+active clients.
+
+<Aside type="caution" title="Under construction">
+  The Control API is not yet available on Windows. Unix domain socket support
+  will be evaluated once Windows support is available.
+</Aside>
+
+## Socket path
+
+The socket is located in the Torchsnap application data directory:
+
+| Platform | Path |
+|---|---|
+| macOS | `~/Library/Application Support/app.torchsnap/control.sock` |
+| Linux | `~/.local/share/app.torchsnap/control.sock` |
+
+The Linux path follows the XDG Base Directory specification and respects a
+custom `$XDG_DATA_HOME` if set.
+
+## Connecting
+
+Connect with any tool that speaks Unix sockets. The examples below use
+[socat](https://linux.die.net/man/1/socat), available via Homebrew
+(`brew install socat`) or most Linux package managers.
+
+### Interactive session
+
+```bash
+socat - UNIX-CONNECT:"$HOME/Library/Application Support/app.torchsnap/control.sock"
+```
+
+Type JSON-RPC requests line by line. Press <kbd>Ctrl</kbd>+<kbd>D</kbd> to
+disconnect.
+
+### One-shot command
+
+```bash
+SOCK="$HOME/Library/Application Support/app.torchsnap/control.sock"
+echo '{"jsonrpc":"2.0","id":1,"method":"status"}' | socat - UNIX-CONNECT:"$SOCK"
+# → {"id":1,"jsonrpc":"2.0","result":{"visible":false}}
+```
+
+## Protocol
+
+The Control API uses [JSON-RPC 2.0](https://www.jsonrpc.org/specification)
+over newline-delimited JSON:
+
+- Each **request** is a single JSON object on one line, terminated by `\n`.
+- Each **response** is a single JSON object on one line, terminated by `\n`.
+- The client picks an `id` (string or number); the server echoes it back so
+  requests and responses can be matched.
+
+### Request format
+
+```json
+{"jsonrpc": "2.0", "id": 1, "method": "show"}
+{"jsonrpc": "2.0", "id": 2, "method": "query", "params": {"text": "firefox"}}
+```
+
+### Response format
+
+Success:
+
+```json
+{"jsonrpc": "2.0", "id": 1, "result": {"ok": true}}
+```
+
+Error:
+
+```json
+{"jsonrpc": "2.0", "id": 1, "error": {"code": -32601, "message": "Method not found: foo"}}
+```
+
+## Multiple clients
+
+The socket supports multiple simultaneous connections. Each client operates
+independently — there is no shared state between connections beyond the
+launcher itself.
+
+## Next steps
+
+See [Commands](/control-api/commands/) for the full list of available methods,
+parameters, and error codes.
