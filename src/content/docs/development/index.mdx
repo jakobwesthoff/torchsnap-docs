@@ -63,10 +63,8 @@ Imports are capabilities the host provides to the gadget:
 | [`website-metadata`](/development/interfaces/imports/#website-metadata) | Look up cached website titles and favicons. |
 
 Every import except [`logging`](/development/interfaces/imports/#logging),
-[`settings`](/development/interfaces/imports/#settings),
-[`assets`](/development/interfaces/imports/#assets),
-[`platform`](/development/interfaces/imports/#platform), and
-[`path-resolver`](/development/interfaces/imports/#path-resolver) requires an
+[`assets`](/development/interfaces/imports/#assets), and
+[`platform`](/development/interfaces/imports/#platform) requires an
 explicit permission grant in the gadget's
 [manifest](/development/manifests/). Capabilities not declared are
 unreachable at runtime. The host returns a permission error if the gadget

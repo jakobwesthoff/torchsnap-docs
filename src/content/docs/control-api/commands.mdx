@@ -30,8 +30,10 @@ echo '{"jsonrpc":"2.0","id":1,"method":"show"}' | socat - UNIX-CONNECT:"$SOCK"
 
 ## `hide`
 
-Hide the launcher window. The search query, selection, and any active gadget
-view are cleared when the window loses focus.
+Hide the launcher window without resetting state. The search query, selection,
+and any active gadget view are preserved. Note that the normal focus-loss
+behavior may still clear state independently; use [`dismiss`](#dismiss) when
+you want an explicit reset.
 
 **Parameters:** none
 
