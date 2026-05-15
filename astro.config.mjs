@@ -112,9 +112,9 @@ export default defineConfig({
                 "core gadget development: search, manifests, permissions, and WIT interfaces",
               paths: [
                 "development/index",
-                "development/hello-world",
+                "development/your-first-gadget",
                 "development/search",
-                "development/manifests",
+                "development/manifest",
                 "development/interfaces/**",
               ],
             },
@@ -173,9 +173,9 @@ export default defineConfig({
           label: "Development",
           items: [
             "development",
-            "development/hello-world",
+            "development/your-first-gadget",
             "development/search",
-            "development/manifests",
+            "development/manifest",
             {
               label: "Interfaces",
               items: [

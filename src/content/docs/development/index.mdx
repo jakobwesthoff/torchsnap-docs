@@ -11,7 +11,7 @@ Torchsnap is extensible through **gadgets**: sandboxed WebAssembly components
 that plug into the launcher's search pipeline. A gadget can provide search
 results, render custom UI inside the launcher, store data in a local SQLite
 database, make HTTP requests, and run system commands. All of this runs within
-a permission sandbox controlled by the gadget's [manifest](/development/manifests/).
+a permission sandbox controlled by the gadget's [manifest](/development/manifest/).
 
 ## How gadgets work
 
@@ -66,12 +66,12 @@ Every import except [`logging`](/development/interfaces/imports/#logging),
 [`assets`](/development/interfaces/imports/#assets), and
 [`platform`](/development/interfaces/imports/#platform) requires an
 explicit permission grant in the gadget's
-[manifest](/development/manifests/). Capabilities not declared are
+[manifest](/development/manifest/). Capabilities not declared are
 unreachable at runtime. The host returns a permission error if the gadget
 tries to call them. Permissions that go beyond a simple boolean toggle are
 scoped further: HTTP requests are restricted to declared origins, filesystem
 reads to declared glob patterns, and command execution to per-binary
-argv-shape rules. See the [Permissions](/development/manifests/#permissions)
+argv-shape rules. See the [Permissions](/development/manifest/#permissions)
 section in the manifest reference for the full model.
 
 ## Rust SDK
@@ -92,7 +92,7 @@ guest traits
 [`MessagingGuest`](/development/interfaces/exports/#messaging),
 [`TasksGuest`](/development/interfaces/exports/#tasks)), all search-related
 types, host import functions, and registration macros into scope. All bundled
-gadgets are built with it. The [Getting Started](/development/hello-world/)
+gadgets are built with it. The [Getting Started](/development/your-first-gadget/)
 tutorial walks through building a gadget with the SDK step by step.
 
 ## React SDK
@@ -129,7 +129,7 @@ it, rename the gadget ID, and start from there.
   <LinkCard
     title="Getting Started"
     description="Build, install, and test your first gadget."
-    href="/development/hello-world/"
+    href="/development/your-first-gadget/"
   />
   <LinkCard
     title="Search"
@@ -139,7 +139,7 @@ it, rename the gadget ID, and start from there.
   <LinkCard
     title="Manifest"
     description="Declare metadata, permissions, and frontend bundles."
-    href="/development/manifests/"
+    href="/development/manifest/"
   />
   <LinkCard
     title="Interfaces"

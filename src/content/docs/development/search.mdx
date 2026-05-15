@@ -144,7 +144,7 @@ key) without maintaining external state.
 ## Prefix routing
 
 A query-mode gadget can declare exclusive prefixes in its
-[manifest](/development/manifests/):
+[manifest](/development/manifest/):
 
 ```toml title="manifest.toml"
 [gadget]
@@ -245,7 +245,7 @@ SearchResponse::CustomUi(ViewResponse {
 
 | Field | Description |
 |---|---|
-| `view` | Name matching a key in `[frontend.views]` (for custom) or `[frontend.inline-views]` (for inline) in the [manifest](/development/manifests/). |
+| `view` | Name matching a key in `[frontend.views]` (for custom) or `[frontend.inline-views]` (for inline) in the [manifest](/development/manifest/). |
 | `data` | Optional JSON-encoded string forwarded to the React component as a prop. The gadget serializes whatever the view needs; the host passes it through without inspecting it. |
 | `results` | Scored entries to display alongside the view. Custom views typically pass an empty list for a full takeover. Inline views can include results that appear in the list below. |
 
