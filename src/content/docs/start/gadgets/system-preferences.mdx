@@ -27,7 +27,7 @@ pane's icon.
 
 <Aside type="note">
   This section is for the technically curious. You don't need any of this
-  to use the System Preferences gadget — it just works out of the box.
+  to use the System Preferences gadget as it just works out of the box.
 </Aside>
 
 <Tabs>
@@ -35,7 +35,7 @@ pane's icon.
     Settings panes are discovered dynamically by scanning
     `/System/Library/ExtensionKit/Extensions` for `.appex` bundles. Each
     bundle's `Info.plist` is checked for the
-    `allowsXAppleSystemPreferencesURLScheme` flag — only panes that support
+    `allowsXAppleSystemPreferencesURLScheme` flag. Only panes that support
     the `x-apple.systempreferences:` URL scheme are included.
 
     The display name is read from the bundle's localized `Info.plist`. Icons

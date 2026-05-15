@@ -46,7 +46,7 @@ echo '{"jsonrpc":"2.0","id":1,"method":"hide"}' | socat - UNIX-CONNECT:"$SOCK"
 ## `toggle`
 
 Toggle the launcher's visibility. If hidden, shows it. If visible, dismisses
-it — clearing the query and selection, just like pressing <kbd>Escape</kbd>.
+it, clearing the query and selection, just like pressing <kbd>Escape</kbd>.
 This matches the behavior of the global keyboard shortcut.
 
 **Parameters:** none
@@ -61,7 +61,7 @@ echo '{"jsonrpc":"2.0","id":1,"method":"toggle"}' | socat - UNIX-CONNECT:"$SOCK"
 
 ## `dismiss`
 
-Hide the launcher and explicitly reset its state — clears the search query,
+Hide the launcher and explicitly reset its state: clears the search query,
 selection, and any active gadget view. This matches the behavior of pressing
 <kbd>Escape</kbd> in the launcher. Prefer `dismiss` over `hide` when the intent
 is to close the launcher cleanly.
@@ -126,9 +126,9 @@ Returned by the JSON-RPC framing layer before any command handler runs.
 
 | Code | Meaning |
 |---|---|
-| `-32700` | Parse error — the request is not valid JSON. |
-| `-32600` | Invalid request — missing `method` field or malformed envelope. |
-| `-32601` | Method not found — no handler registered for the given method name. |
+| `-32700` | Parse error: the request is not valid JSON. |
+| `-32600` | Invalid request: missing `method` field or malformed envelope. |
+| `-32601` | Method not found: no handler registered for the given method name. |
 
 ```json title="Example"
 {"jsonrpc": "2.0", "id": 1, "error": {"code": -32601, "message": "Method not found: foo"}}
@@ -140,8 +140,8 @@ Returned by individual command handlers.
 
 | Code | Meaning |
 |---|---|
-| `-1` | Invalid state — a precondition is not met or a required parameter is missing. |
-| `-3` | Internal error — an unexpected failure in the handler. |
+| `-1` | Invalid state: a precondition is not met or a required parameter is missing. |
+| `-3` | Internal error: an unexpected failure in the handler. |
 
 ## Scripting examples
 

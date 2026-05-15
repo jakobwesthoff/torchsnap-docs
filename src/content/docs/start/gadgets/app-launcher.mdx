@@ -18,7 +18,7 @@ part of its name.
 ## How it works
 
 All installed applications are indexed at startup and kept up to date with a
-background refresh every five minutes. Results appear instantly — there is no
+background refresh every five minutes. Results appear instantly with no
 manual setup required.
 
 Each result shows the application name, its file path, and the app's own icon.
@@ -27,14 +27,14 @@ Each result shows the application name, its file path, and the app's own icon.
 
 <Aside type="note">
   This section is for the technically curious. You don't need any of this
-  to use the App Launcher — it just works out of the box.
+  to use the App Launcher as it just works out of the box.
 </Aside>
 
 <Tabs>
   <TabItem label="macOS">
     Applications are discovered via Spotlight (`mdfind`) using the query
     `kMDItemContentType == 'com.apple.application-bundle'`. Only bundles under
-    an `/Applications/` directory are included — this covers `/Applications/`,
+    an `/Applications/` directory are included, covering `/Applications/`,
     `/System/Applications/`, and `~/Applications/`. Framework helpers and
     bundles in other locations are filtered out.
 

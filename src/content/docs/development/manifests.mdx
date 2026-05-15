@@ -7,11 +7,11 @@ sidebar:
 
 TODO: Complete `manifest.toml` reference.
 
-- `[gadget]` — id (naming rules), name, description, version, wasm, icon, prefixes
-- `[settings]` — default values, JSON-compatible TOML
-- `[storage.sql]` — migrations list, applied before `enable()`
-- `[[tasks]]` — scheduled tasks with POSIX cron expressions
-- `[shortcuts]` — global shortcut declarations (label + default binding)
-- `[permissions]` — all boolean flags and structured permission blocks
-- `[frontend]` — bundle paths, views, inline-views, settings component
+- `[gadget]`: id (naming rules), name, description, version, wasm, icon, prefixes
+- `[settings]`: default values, JSON-compatible TOML
+- `[storage.sql]`: migrations list, applied before `enable()`
+- `[[tasks]]`: scheduled tasks with POSIX cron expressions
+- `[shortcuts]`: global shortcut declarations (label + default binding)
+- `[permissions]`: all boolean flags and structured permission blocks
+- `[frontend]`: bundle paths, views, inline-views, settings component
 - Path variables: `${home}`, `${xdg-config}`, `${xdg-data}`, `${gadget-data}`, `${gadget-archive}`

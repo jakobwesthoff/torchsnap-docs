@@ -1,6 +1,6 @@
 ---
 title: "lifecycle"
-description: Gadget lifecycle management — enable, disable, and settings reactivity.
+description: Gadget lifecycle management, covering enable, disable, and settings reactivity.
 sidebar:
   order: 1
   badge:
@@ -10,6 +10,6 @@ sidebar:
 
 TODO: Lifecycle export interface documentation.
 
-- `enable() -> result<_, string>` — called on gadget activation, after SQL migrations
-- `disable()` — called on deactivation, store drops after
-- `on-setting-changed(key, value)` — reactive setting updates
+- `enable() -> result<_, string>`: called on gadget activation, after SQL migrations
+- `disable()`: called on deactivation, store drops after
+- `on-setting-changed(key, value)`: reactive setting updates

@@ -1,6 +1,6 @@
 ---
 title: "search"
-description: Core search functionality — catalog entries, dynamic search, and action execution.
+description: Core search functionality, covering catalog entries, dynamic search, and action execution.
 sidebar:
   order: 2
   badge:
@@ -10,9 +10,9 @@ sidebar:
 
 TODO: Search export interface documentation.
 
-- `entries() -> list<catalog-entry>` — static catalog for global search
-- `search(query, matched-prefix) -> search-response` — dynamic search
-- `execute(entry, action-id) -> result<post-action, string>` — run an action
+- `entries() -> list<catalog-entry>`: static catalog for global search
+- `search(query, matched-prefix) -> search-response`: dynamic search
+- `execute(entry, action-id) -> result<post-action, string>`: run an action
 - Search response variants: `nothing`, `results(list<scored-entry>)`, `custom-ui(view-response)`, `inline-ui(view-response)`
 - Action IDs: `open`, `copy`, `reveal`, `open-with`, `delete`, `open-settings`, `custom(string)`
 - Post-action variants: `nothing`, `dismiss`, `keep-open`
