@@ -5,6 +5,7 @@ sidebar:
   order: 3
 ---
 
+import { Tabs, TabItem, Aside } from '@astrojs/starlight/components';
 import Screenshot from '../../../../components/Screenshot.astro';
 import systemCmdsDark from '../../../../assets/screenshots/gadget-system-commands-dark.png';
 import systemCmdsLight from '../../../../assets/screenshots/gadget-system-commands-light.png';
@@ -27,6 +28,38 @@ the launcher.
 | **Empty Trash** | Empty the trash. |
 | **Start Screen Saver** | Activate the screen saver. |
 | **Eject Disc** | Eject the optical disc drive. |
+
+### Technical details
+
+<Aside type="note">
+  This section is for the technically curious. You don't need any of this
+  to use System Commands — they just work out of the box.
+</Aside>
+
+<Tabs>
+  <TabItem label="macOS">
+    Most commands are executed via AppleScript through `osascript`. Sleep,
+    Restart, Shut Down, and Log Out use `System Events`; Empty Trash uses
+    `Finder`; Toggle Dark / Light Mode flips the `dark mode` property on
+    `appearance preferences`.
+
+    A few commands use shell tools instead: Lock Screen runs
+    `pmset displaysleepnow`, Start Screen Saver launches the
+    `ScreenSaverEngine` app via `open -a`, and Eject Disc runs `drutil eject`.
+  </TabItem>
+  <TabItem label="Linux">
+    <Aside type="caution" title="Under construction">
+      Linux system commands are not yet implemented. Platform-appropriate
+      equivalents will be added once Linux support is available.
+    </Aside>
+  </TabItem>
+  <TabItem label="Windows">
+    <Aside type="caution" title="Under construction">
+      Windows system commands are not yet implemented. Platform-appropriate
+      equivalents will be added once Windows support is available.
+    </Aside>
+  </TabItem>
+</Tabs>
 
 ## Actions
 

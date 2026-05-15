@@ -5,6 +5,7 @@ sidebar:
   order: 1
 ---
 
+import { Tabs, TabItem, Aside } from '@astrojs/starlight/components';
 import Screenshot from '../../../../components/Screenshot.astro';
 import appLauncherDark from '../../../../assets/screenshots/gadget-app-launcher-dark.png';
 import appLauncherLight from '../../../../assets/screenshots/gadget-app-launcher-light.png';
@@ -21,6 +22,42 @@ background refresh every five minutes. Results appear instantly — there is no
 manual setup required.
 
 Each result shows the application name, its file path, and the app's own icon.
+
+### Technical details
+
+<Aside type="note">
+  This section is for the technically curious. You don't need any of this
+  to use the App Launcher — it just works out of the box.
+</Aside>
+
+<Tabs>
+  <TabItem label="macOS">
+    Applications are discovered via Spotlight (`mdfind`) using the query
+    `kMDItemContentType == 'com.apple.application-bundle'`. Only bundles under
+    an `/Applications/` directory are included — this covers `/Applications/`,
+    `/System/Applications/`, and `~/Applications/`. Framework helpers and
+    bundles in other locations are filtered out.
+
+    The display name is resolved from the app's `Info.plist` in priority order:
+    `CFBundleDisplayName`, then `CFBundleName`, then the `.app` filename as a
+    fallback.
+
+    Icons are extracted via `NSWorkspace.iconForFile()`, which returns the
+    system-composited icon including any dynamic overlays.
+  </TabItem>
+  <TabItem label="Linux">
+    <Aside type="caution" title="Under construction">
+      Linux app discovery is planned but not yet implemented. It will scan
+      `.desktop` files from XDG data directories.
+    </Aside>
+  </TabItem>
+  <TabItem label="Windows">
+    <Aside type="caution" title="Under construction">
+      Windows app discovery is planned but not yet implemented. It will
+      enumerate Start Menu shortcuts.
+    </Aside>
+  </TabItem>
+</Tabs>
 
 ## Actions
 

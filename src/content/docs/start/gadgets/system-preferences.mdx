@@ -5,6 +5,7 @@ sidebar:
   order: 2
 ---
 
+import { Tabs, TabItem, Aside } from '@astrojs/starlight/components';
 import Screenshot from '../../../../components/Screenshot.astro';
 import systemPrefsDark from '../../../../assets/screenshots/gadget-system-preferences-dark.png';
 import systemPrefsLight from '../../../../assets/screenshots/gadget-system-preferences-light.png';
@@ -21,6 +22,42 @@ the keywords "settings" or "preferences" to browse the full list.
 
 Each result shows the pane name, "System Settings" as the subtitle, and the
 pane's icon.
+
+### Technical details
+
+<Aside type="note">
+  This section is for the technically curious. You don't need any of this
+  to use the System Preferences gadget — it just works out of the box.
+</Aside>
+
+<Tabs>
+  <TabItem label="macOS">
+    Settings panes are discovered dynamically by scanning
+    `/System/Library/ExtensionKit/Extensions` for `.appex` bundles. Each
+    bundle's `Info.plist` is checked for the
+    `allowsXAppleSystemPreferencesURLScheme` flag — only panes that support
+    the `x-apple.systempreferences:` URL scheme are included.
+
+    The display name is read from the bundle's localized `Info.plist`. Icons
+    are extracted from the `.appex` bundle via `NSWorkspace.iconForFile()`.
+
+    When you select a pane, Torchsnap opens a deep-link URL in the format
+    `x-apple.systempreferences:<BundleIdentifier>`, which launches System
+    Settings directly at the chosen pane.
+  </TabItem>
+  <TabItem label="Linux">
+    <Aside type="caution" title="Under construction">
+      Linux support is planned but not yet implemented. It will scan GNOME
+      and KDE settings `.desktop` files.
+    </Aside>
+  </TabItem>
+  <TabItem label="Windows">
+    <Aside type="caution" title="Under construction">
+      Windows support is planned but not yet implemented. It will enumerate
+      `ms-settings:` URIs.
+    </Aside>
+  </TabItem>
+</Tabs>
 
 ## Actions
 
