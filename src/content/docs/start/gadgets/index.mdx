@@ -5,9 +5,64 @@ sidebar:
   order: 0
 ---
 
-TODO: Gadgets overview landing page.
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
 
-- What gadgets are from a user perspective
-- How they appear in the launcher (search results, prefix routing, custom UI)
-- How to enable/disable gadgets in settings
-- List of all built-in gadgets with brief descriptions and links to individual pages
+Gadgets are the plugins that power everything Torchsnap can do. Every search
+result, action, and custom view you see in the launcher is provided by a
+gadget. Torchsnap ships with a set of built-in gadgets out of the box, and you
+can [install additional ones](/start/settings/#gadgets) or
+[build your own](/development/).
+
+## How gadgets appear in the launcher
+
+Gadgets surface their results in different ways:
+
+**Plain search** — most gadgets contribute results alongside everything else
+when you type. For example, the [App Launcher](/start/gadgets/app-launcher/)
+and [System Commands](/start/gadgets/system-commands/) both respond to the same
+query, and their results are ranked together by relevance and
+[frecency](/start/settings/#frecency).
+
+**Prefix routing** — some gadgets activate when you type a specific prefix
+character. This lets you target a single gadget directly:
+
+| Prefix | Gadget |
+|---|---|
+| `=` | [Calculator](/start/gadgets/calculator/) — evaluate math expressions |
+| `:` | [Emoji Picker](/start/gadgets/emoji-picker/) — search emoji by shortcode |
+
+**Inline detection** — some gadgets activate when they recognize a pattern
+anywhere in the query. [Bangs](/start/gadgets/bangs/) trigger when `!` appears
+at any position (e.g., `pantine !crates`),
+[Open URL](/start/gadgets/open-url/) activates when you type a URL, and the
+[Calculator](/start/gadgets/calculator/) also detects math expressions
+automatically without requiring the `=` prefix.
+
+**Custom views** — a few gadgets render their own UI beyond the standard result
+list. The [Clipboard Manager](/start/gadgets/clipboard-manager/) shows a grid
+of recent clipboard entries, and the
+[Calculator](/start/gadgets/calculator/) displays the result inline above the
+search bar.
+
+## Managing gadgets
+
+You can enable, disable, install, and uninstall gadgets in
+[Settings](/start/settings/#gadgets). Some gadgets also have their own
+configuration panels — these appear in the Settings sidebar under the gadget's
+name.
+
+## Included gadgets
+
+The following gadgets ship with Torchsnap by default:
+
+<CardGrid>
+  <LinkCard title="App Launcher" description="Find and open installed applications." href="/start/gadgets/app-launcher/" />
+  <LinkCard title="System Preferences" description="Jump directly to a specific settings pane." href="/start/gadgets/system-preferences/" />
+  <LinkCard title="System Commands" description="Lock screen, sleep, restart, toggle dark mode, and more." href="/start/gadgets/system-commands/" />
+  <LinkCard title="Clipboard Manager" description="Browse and paste from clipboard history." href="/start/gadgets/clipboard-manager/" />
+  <LinkCard title="Builtin Commands" description="Open Settings, quit Torchsnap." href="/start/gadgets/builtin-commands/" />
+  <LinkCard title="Calculator" description="Evaluate math expressions inline." href="/start/gadgets/calculator/" />
+  <LinkCard title="Emoji Picker" description="Search and insert emoji by shortcode." href="/start/gadgets/emoji-picker/" />
+  <LinkCard title="Bangs" description="DuckDuckGo bang shortcuts for quick web searches." href="/start/gadgets/bangs/" />
+  <LinkCard title="Open URL" description="Open URLs typed into the search bar." href="/start/gadgets/open-url/" />
+</CardGrid>
