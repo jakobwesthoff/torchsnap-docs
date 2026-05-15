@@ -78,7 +78,64 @@ export default defineConfig({
         starlightLlmsTxt({
           description:
             "Documentation for Torchsnap, a keyboard-driven launcher for macOS with sandboxed WebAssembly gadgets.",
+          details: [
+            "Torchsnap is a keyboard-driven application launcher for macOS. Everything the launcher can do is provided by gadgets: sandboxed WebAssembly components that plug into the search pipeline. A set of built-in gadgets ships with Torchsnap (app launcher, clipboard manager, calculator, emoji picker, system commands, and others). Users can also install third-party gadgets or build their own.",
+            "## Documentation structure",
+            "This documentation is organized into three areas, each available as a separate subset file for targeted retrieval:",
+            "**User Guide** covers installation, configuration, keyboard shortcuts, and the built-in gadgets. Start here if you need to understand what Torchsnap does and how end users interact with it.",
+            "**Gadget development** is split across multiple subsets. The **Gadget API** subset covers the core development workflow: a step-by-step tutorial for building a first gadget, the search pipeline (catalog mode for static entries, query mode for dynamic results, prefix routing for dedicated UI), the manifest format (metadata, permissions, settings schema, storage, tasks, frontend bundles, keyboard shortcuts), and the WIT interface contract that defines the boundary between host and gadget. The **Gadget Frontend** subset covers the React-based frontend SDK for gadgets that need custom views inside the launcher or settings panels for configuration. The **Packaging** subset covers building `.torchsnap` archives for distribution. The **Devtools** subset covers the built-in devtools panel used for debugging gadgets during development.",
+            "**Control API** covers driving Torchsnap programmatically from external programs via JSON-RPC over a Unix domain socket.",
+            "## Technical context",
+            "Gadgets compile to the `wasm32-wasip2` target using the WebAssembly Component Model. The host loads them at runtime via wasmtime. The host-gadget boundary is defined by a WIT (WebAssembly Interface Types) contract specifying what the gadget exports (lifecycle, search, messaging, tasks) and what the host provides (logging, settings, clipboard, SQLite storage, HTTP, filesystem, command execution, and more). Every host capability beyond a minimal baseline requires an explicit permission grant in the gadget's manifest.",
+            "The backend (gadget logic) is written in Rust using the `torchsnap-gadget-sdk` crate. The frontend (custom views and settings panels) is written in React/TypeScript using the `@torchsnap/gadget-sdk` package. Gadgets that only provide search results do not need a frontend.",
+          ].join("\n\n"),
           exclude: ["style-reference"],
+          promote: ["start/**", "development/**"],
+          demote: ["control-api/**"],
+          customSets: [
+            {
+              label: "User Guide",
+              description:
+                "installation, configuration, keyboard shortcuts, and built-in gadgets",
+              paths: ["start/**"],
+            },
+            {
+              label: "Gadget API",
+              description:
+                "core gadget development: search, manifests, permissions, and WIT interfaces",
+              paths: [
+                "development/index",
+                "development/hello-world",
+                "development/search",
+                "development/manifests",
+                "development/interfaces/**",
+              ],
+            },
+            {
+              label: "Gadget Frontend",
+              description:
+                "React-based views, settings panels, and frontend-to-backend messaging",
+              paths: ["development/frontend/**"],
+            },
+            {
+              label: "Packaging",
+              description:
+                "packaging gadgets for distribution and use outside development",
+              paths: ["development/packaging"],
+            },
+            {
+              label: "Devtools",
+              description:
+                "the devtools panel for gadget debugging and logging",
+              paths: ["development/devtools"],
+            },
+            {
+              label: "Control API",
+              description:
+                "JSON-RPC automation over a Unix domain socket",
+              paths: ["control-api/**"],
+            },
+          ],
         }),
       ],
       expressiveCode: {
