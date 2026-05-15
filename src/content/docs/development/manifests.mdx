@@ -277,9 +277,12 @@ At call time, the host parses the request URL and extracts its origin (scheme +
 host + non-default port). A request to `https://api.example.com/v1/data`
 produces the origin `https://api.example.com`, which must be in the list. Port
 normalization is automatic: `https://example.com:443` and
-`https://example.com` are the same origin. The special value `"*"` disables
-origin checking entirely. Use it only for gadgets that genuinely need to reach
-arbitrary endpoints.
+`https://example.com` are the same origin. 
+<Aside type="danger" title="Trust-all mode">
+  The special value `"*"` disables origin checking entirely. Use it only for
+  gadgets that genuinely need to reach arbitrary endpoints. A gadget with
+  unrestricted HTTP access can exfiltrate data to any server.
+</Aside>
 
 ### Filesystem
 
@@ -291,7 +294,12 @@ may access here.
 
 | Field | Type | Description |
 |---|---|---|
-| `read` | list of strings | Path patterns. Supports `*` (single segment) and `**` (cross-segment) globs. Supports substitution variables. Non-empty. |
+| `read` | list of strings | Path patterns. Supports `*` (single segment) and `**` (cross-segment) globs. Non-empty. |
+
+Patterns can use substitution variables like `${home}` or `${xdg-config}` to
+reference platform-specific directories without hardcoding paths. See
+[Substitution variables](#substitution-variables) for the complete list of
+available variables and where they are recognized.
 
 A gadget that reads its own config file and a directory of JSON data files
 would declare:
@@ -321,14 +329,18 @@ The `[[permissions.command]]` section controls the
 [`command`](/development/interfaces/imports/#command) host import, which lets
 gadgets run system processes. This is the most fine-grained permission: you
 specify not just which binary, but what argument patterns are allowed per
-position. A gadget granted `git log` cannot run `git push`. Multiple entries
-for different binaries are allowed.
+position. A gadget granted `git log` cannot run `git push`.
+
+The double-bracket `[[...]]` syntax is [TOML's array of tables](https://toml.io/en/v1.0.0#array-of-tables):
+each `[[permissions.command]]` block declares one rule, and you can repeat the
+block as many times as needed to allow different binaries or different
+invocation shapes of the same binary.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `binary` | string | yes | Executable name or absolute path. |
 | `argv` | list of constraints | no | Per-position argument rules. Default: `[]` (zero arguments only). |
-| `cwd` | string | no | Working directory. Supports substitution variables. |
+| `cwd` | string | no | Working directory. Supports [substitution variables](#substitution-variables). |
 | `timeout-ms-max` | integer | no | Hard ceiling on per-call timeout in milliseconds. |
 | `max-output-bytes` | integer | no | Hard ceiling on captured stdout + stderr bytes. |
 | `max-stdin-bytes` | integer | no | Hard ceiling on stdin input bytes. |
@@ -338,11 +350,11 @@ with a `kind` field:
 
 | Kind | Fields | Description |
 |---|---|---|
-| `literal` | `value` | Exact string match. Supports substitution variables. |
+| `literal` | `value` | Exact string match. Supports [substitution variables](#substitution-variables). |
 | `enum` | `values` | Argument must equal one of the listed strings. |
 | `glob` | `pattern` | Argument must match the glob pattern. |
 | `regex` | `pattern` | Argument must match the regex (anchored to the full string automatically). |
-| `path-under` | `root` | Argument must canonicalize to a path under `root`. Symlinks are resolved before checking. Supports substitution variables. |
+| `path-under` | `root` | Argument must canonicalize to a path under `root`. Symlinks are resolved before checking. Supports [substitution variables](#substitution-variables). |
 | `any-string` | (none) | Accepts any value unconditionally. |
 | `rest` | `constraint` | Applies the inner constraint to all remaining positions. Must be the last element in the list. |
 
@@ -368,9 +380,7 @@ At call time, the host matches the binary name by exact string equality, then
 walks the argument list position by position against the compiled constraints.
 Without a trailing `rest` constraint, the argument count must match exactly.
 With `rest`, the prefix must match and every trailing argument must satisfy the
-inner constraint. If no rule matches, the call is rejected before the process
-is spawned. Same-binary entries with overlapping argument shapes are rejected
-at parse time to prevent ambiguous matching.
+inner constraint. If no rule matches, the call is rejected before the process is spawned.
 
 <Aside type="note">
   No shell wrapping is applied. Arguments go directly to the process via
@@ -379,20 +389,51 @@ at parse time to prevent ambiguous matching.
   per-position argument matching.
 </Aside>
 
+#### Overlap detection
+
+If you declare multiple rules for the same binary, their argument patterns must
+be distinguishable. The host rejects the manifest at parse time if two rules
+could both accept the same call, because it would be unclear which rule should
+apply. For example, this is rejected because a call like `git log` would match both
+rules:
+
+```toml title="manifest.toml (invalid)"
+[[permissions.command]]
+binary = "git"
+argv = [{ kind = "any-string" }]
+
+[[permissions.command]]
+binary = "git"
+argv = [{ kind = "literal", value = "log" }, { kind = "rest", constraint = { kind = "any-string" } }]
+```
+
+The fix is to make both rules distinguishable by using a `literal` first
+argument in each:
+
+```toml title="manifest.toml (valid)"
+[[permissions.command]]
+binary = "git"
+argv = [{ kind = "literal", value = "status" }]
+
+[[permissions.command]]
+binary = "git"
+argv = [{ kind = "literal", value = "log" }, { kind = "rest", constraint = { kind = "any-string" } }]
+```
+
 ### Substitution variables
 
-Several permission fields support `$\{...\}` substitution variables that
+Several permission fields support {"${...}"} substitution variables that
 resolve to host-specific paths at parse time. This lets manifests reference
 directories like the user's home or the gadget's own data directory without
 hardcoding platform-specific paths.
 
 | Variable | Resolves to |
 |---|---|
-| `$\{gadget-data\}` | The gadget's host-managed state directory. |
-| `$\{gadget-archive\}` | The gadget's code root (archive or dev directory). |
-| `$\{home\}` | The user's home directory. |
-| `$\{xdg-config\}` | XDG config directory (`~/.config` on Linux, `~/Library/Application Support` on macOS). |
-| `$\{xdg-data\}` | XDG data directory (`~/.local/share` on Linux, `~/Library/Application Support` on macOS). |
+| {"${gadget-data}"} | The gadget's host-managed state directory. |
+| {"${gadget-archive}"} | The gadget's code root (archive or dev directory). |
+| {"${home}"} | The user's home directory. |
+| {"${xdg-config}"} | XDG config directory (`~/.config` on Linux, `~/Library/Application Support` on macOS). |
+| {"${xdg-data}"} | XDG data directory (`~/.local/share` on Linux, `~/Library/Application Support` on macOS). |
 
 Recognized in: `[permissions.filesystem] read` patterns,
 `[[permissions.command]]` `cwd`, `literal` values, `enum` values, and
@@ -406,19 +447,16 @@ so your gadget code can construct the same paths the permission rules reference.
 
 Gadgets that need persistent structured storage (clipboard history, calculation
 logs, cached API responses) can declare a SQLite database in the `[storage.sql]`
-section. The host manages the
-database lifecycle: it creates the file, applies your migration scripts in
-order, and makes it available through the
-[`sql-storage`](/development/interfaces/imports/#sql-storage) host import
-before your `enable()` runs. You write standard SQL migration files; the host
-handles versioning. Migrations must be additive, as the host does not support
-rollbacks.
+section. Each gadget gets its own isolated database file managed entirely by the
+host. The gadget never touches the file directly; instead it uses the
+[`sql-storage`](/development/interfaces/imports/#sql-storage) host import to
+execute queries and statements.
 
 | Field | Type | Description |
 |---|---|---|
 | `migrations` | list of strings | Ordered list of SQL file paths relative to the gadget root. |
 
-A gadget with two migration files would declare:
+A gadget that creates a table and later adds an index would declare:
 
 ```toml title="manifest.toml"
 [storage.sql]
@@ -428,17 +466,55 @@ migrations = [
 ]
 ```
 
-The database is stored at the gadget's host-managed state directory, separate
-from the gadget's code. See [Packaging](/development/packaging/) for the
-storage layout.
+### How migrations work
+
+Migration files are standard SQL scripts. The host applies them in the order
+they appear in the `migrations` list before the gadget's `enable()` runs, so
+the database is always at the latest schema when your code first accesses it.
+Naming files with a numeric prefix (`001_`, `002_`) is recommended to keep the
+directory listing consistent with the manifest order, but the filenames
+themselves have no effect on execution order.
+
+A typical initial migration creates the gadget's tables:
+
+```sql title="migrations/001_init.sql"
+CREATE TABLE history (
+    id          TEXT PRIMARY KEY,
+    expression  TEXT NOT NULL,
+    result      TEXT NOT NULL,
+    created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+```
+
+A later migration can add an index or a new column:
+
+```sql title="migrations/002_add_index.sql"
+CREATE INDEX idx_history_created_at ON history(created_at DESC);
+```
+
+<Aside type="caution" title="Migrations are append-only">
+  When you need to change the schema, always add a new migration file at the
+  end of the list (`003_...`, `004_...`). Never edit, remove, or reorder
+  existing migration files. The host remembers how many migrations it has
+  already applied on each user's machine, so changing an existing entry has no
+  effect and removing or reordering entries will corrupt the database schema.
+  There is no rollback mechanism.
+</Aside>
+
+The database file is stored in the gadget's host-managed state directory,
+separate from the gadget's code. See [Packaging](/development/packaging/) for
+the storage layout.
 
 ## Scheduled tasks
 
 Some gadgets need to run work periodically without user interaction: cleaning up
 old database rows, refreshing a cached dataset, syncing with an external
 service. Since WASM gadgets cannot spawn their own threads or timers, the host
-provides a cron-based scheduler. Each `[[tasks]]` entry declares a task ID and
-a schedule. The host invokes the gadget's
+provides a cron-based scheduler. Like `[[permissions.command]]`, the
+double-bracket `[[tasks]]` syntax is
+[TOML's array of tables](https://toml.io/en/v1.0.0#array-of-tables), so you
+can declare multiple tasks by repeating the block. Each entry declares a task
+ID and a schedule. The host invokes the gadget's
 [`run_task`](/development/interfaces/exports/#tasks) export at the configured
 times. Task errors are logged but do not disable the gadget. Duplicate task IDs
 within a gadget are rejected at parse time.
@@ -472,8 +548,12 @@ schedule = "0 */6 * * *"
 Gadgets that render custom UI in the launcher or provide their own settings
 panel ship [React](https://react.dev/) frontend bundles alongside the WASM
 binary. This section tells the host where to find those bundles and which
-JavaScript exports map to which views. Gadgets that only return search results
-without custom UI do not need this section at all.
+JavaScript exports map to which views.
+
+<Aside type="tip">
+  Gadgets that only return search results without custom UI do not need this
+  section at all.
+</Aside>
 
 All paths are relative to the gadget root. See the
 [Frontend](/development/frontend/) section for building these bundles.
@@ -487,29 +567,42 @@ All paths are relative to the gadget root. See the
 
 ### Custom views
 
-The `[frontend.views]` table maps view names to React components. When your
-gadget returns a [`CustomUi`](/development/search/#custom-and-inline-views)
-search response, the host needs to know which React component to mount. This
-table maps the view name you pass in your `ViewResponse` (e.g. `view:
-"history"`) to a named JavaScript export from `launcher-bundle`.
+When your gadget returns a
+[`CustomUi`](/development/search/#custom-and-inline-views) search response,
+the `view` field in your `ViewResponse` tells the host which component to
+mount. The `[frontend.views]` table connects that name to an actual JavaScript
+export from `launcher-bundle`. The key is the view name you use in Rust, the
+value is the named export in your JavaScript bundle.
+
+A gadget with a grid view and a detail view would declare:
 
 ```toml title="manifest.toml"
 [frontend.views]
-history = "CalculatorView"
+grid = "EmojiGrid"
+detail = "EmojiDetail"
 ```
+
+When your `search()` returns a `CustomUi` response with `view` set to
+`"grid"`, the host looks up that name in this table and mounts the
+`EmojiGrid` component.
 
 ### Inline views
 
 The `[frontend.inline-views]` table works the same way, but for
 [`InlineUi`](/development/search/#custom-and-inline-views) search responses.
-Inline views render above the result list rather than replacing it. The
-[Calculator](/start/gadgets/calculator/) uses this to show a quick result
-preview when it detects a math expression during normal search.
+Inline views render a small component above the standard result list rather
+than replacing it entirely.
+
+A gadget that shows a quick preview above the results would declare:
 
 ```toml title="manifest.toml"
 [frontend.inline-views]
-result = "CalculatorInline"
+preview = "ResultPreview"
 ```
+
+When your `search()` returns an `InlineUi` response with `view` set to
+`"preview"`, the host looks up that name here and mounts the `ResultPreview`
+component above the result list.
 
 ### Settings panel
 
