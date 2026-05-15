@@ -5,12 +5,450 @@ sidebar:
   order: 1
 ---
 
-TODO: Walk through building a gadget from the template.
+import { Aside, Steps, CardGrid, LinkCard } from '@astrojs/starlight/components';
 
-- Prerequisites: Rust toolchain, wasm32-wasip2 target
-- Cloning/copying the template gadget
-- Project structure walkthrough (Cargo.toml, manifest.toml, src/lib.rs, frontend/)
-- Building with cargo build --target wasm32-wasip2 --release
-- Installing during development (dev gadget root)
-- Testing in the launcher
-- Making changes and iterating
+This tutorial walks through building a gadget from scratch. By the end you will
+have a working gadget that appears in the launcher, responds to searches, and
+copies text to the clipboard when activated.
+
+## Prerequisites
+
+<Steps>
+
+1. **[Rust](https://www.rust-lang.org/tools/install) toolchain** with the
+   `wasm32-wasip2` target:
+
+   ```sh
+   rustup target add wasm32-wasip2
+   ```
+
+2. **[Bun](https://bun.sh/)** (only needed if your gadget has a frontend).
+
+3. **The [Torchsnap repository](https://github.com/jakobwesthoff/torchsnap)**
+   cloned locally.
+
+</Steps>
+
+<Aside type="caution" title="TODO: Out-of-tree development">
+  Gadget development currently requires working inside the Torchsnap
+  repository. The Rust SDK uses a workspace-local `path` dependency and the
+  frontend SDK uses a `file:` reference to the monorepo. A standalone
+  development workflow (published crate, npm package) is planned but not yet
+  available.
+</Aside>
+
+## Copy the template
+
+The `gadgets/template/` directory is a complete starting point. Copy it and
+pick a name for your gadget:
+
+```sh
+cp -r gadgets/template gadgets/hello-world
+```
+
+Then update the identity in three places.
+
+### Manifest
+
+Change the `[gadget]` section in `gadgets/hello-world/manifest.toml`:
+
+```toml title="manifest.toml"
+[gadget]
+id = "hello-world"
+name = "Hello World"
+description = "A tutorial gadget that searches famous quotes"
+version = "0.1.0"
+wasm = "hello_world_gadget.wasm"
+icon = "heroicons:sparkles"
+```
+
+The `wasm` field must match the compiled binary filename. Cargo converts
+hyphens to underscores in crate names, so `hello-world-gadget` produces
+`hello_world_gadget.wasm`.
+
+### Cargo.toml
+
+Change the package name in `gadgets/hello-world/Cargo.toml`:
+
+```toml title="Cargo.toml"
+[package]
+name = "hello-world-gadget"
+edition = "2024"
+
+[dependencies]
+torchsnap-gadget-sdk = { path = "../gadget-sdk" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[lib]
+crate-type = ["cdylib"]
+```
+
+`crate-type = ["cdylib"]` is required for WASM component output.
+
+### Workspace
+
+Add the new crate to the workspace in `gadgets/Cargo.toml`:
+
+```toml title="gadgets/Cargo.toml"
+[workspace]
+members = [
+    # ... existing members
+    "hello-world",
+]
+```
+
+## Writing the gadget
+
+Gadgets can provide search results in two ways. In **catalog mode**, the gadget
+hands the host a fixed list of entries and the host fuzzy-matches them against
+whatever the user types. In **query mode**, the gadget receives every keystroke
+and scores its own results. The two modes serve different purposes and can
+coexist in the same gadget. See the [Search](/development/search/) page for the
+full picture.
+
+The gadget we are building uses catalog mode: it defines a set of quotes as
+data, maps them to catalog entries, and lets the host handle all matching.
+Searching for "einstein", "imagination", or "evil" will surface the matching
+entries with highlighted titles automatically. When the user activates one, the
+quote text is copied to the clipboard.
+
+Replace `gadgets/hello-world/src/lib.rs` with the following. Each section is
+explained in the walkthrough below.
+
+```rust title="src/lib.rs"
+use torchsnap_gadget_sdk::prelude::*;
+
+struct HelloWorld;
+define_gadget!(HelloWorld);
+impl_noop_messaging!(HelloWorld);
+impl_noop_tasks!(HelloWorld);
+
+const QUOTES: &[(&str, &str, &str)] = &[
+    ("einstein", "Imagination is more important than knowledge.", "Albert Einstein"),
+    ("turing", "We can only see a short distance ahead, but we can see plenty there that needs to be done.", "Alan Turing"),
+    ("curie", "Nothing in life is to be feared, it is only to be understood.", "Marie Curie"),
+    ("hopper", "The most damaging phrase in the language is: We have always done it this way.", "Grace Hopper"),
+    ("knuth", "Premature optimization is the root of all evil.", "Donald Knuth"),
+];
+
+impl LifecycleGuest for HelloWorld {
+    fn enable() -> Result<(), String> {
+        logging::log(
+            logging::LogLevel::Info,
+            "Hello World gadget enabled",
+            &[],
+            None,
+        );
+        Ok(())
+    }
+
+    fn disable() {}
+
+    fn on_setting_changed(_key: String, _value: String) {}
+}
+
+impl SearchGuest for HelloWorld {
+    fn entries() -> Vec<CatalogEntry> {
+        QUOTES
+            .iter()
+            .map(|(id, text, author)| CatalogEntry {
+                id: id.to_string(),
+                title: text.to_string(),
+                subtitle: Some(author.to_string()),
+                icon: Some(EntryIcon::HeroIcon("light-bulb".into())),
+                keywords: vec!["quote".into(), id.to_string()],
+                actions: vec![Action {
+                    id: ActionId::Copy,
+                    label: "Copy".into(),
+                }],
+            })
+            .collect()
+    }
+
+    fn search(_query: String, _matched_prefix: Option<String>) -> SearchResponse {
+        SearchResponse::Nothing
+    }
+
+    fn execute(entry: ScoredEntry, _action_id: ActionId) -> Result<PostAction, String> {
+        clipboard::write_text(&entry.title)
+            .map_err(|e| format!("clipboard write failed: {e:?}"))?;
+
+        Ok(PostAction::Dismiss)
+    }
+}
+```
+
+### Registration
+
+```rust
+use torchsnap_gadget_sdk::prelude::*;
+
+struct HelloWorld;
+define_gadget!(HelloWorld);
+impl_noop_messaging!(HelloWorld);
+impl_noop_tasks!(HelloWorld);
+```
+
+Every gadget starts with these lines. `define_gadget!` registers `HelloWorld` as
+the WASM component's entry point, wiring the WIT guest exports to trait
+implementations on the struct.
+
+`impl_noop_messaging!` and `impl_noop_tasks!` generate stub implementations
+for the [`messaging`](/development/interfaces/exports/#messaging) and
+[`tasks`](/development/interfaces/exports/#tasks) interfaces. Both are
+mandatory exports in the WIT world, but this gadget uses neither. The stubs
+return a clear error if the host ever routes a call to them.
+
+### Lifecycle
+
+```rust
+impl LifecycleGuest for HelloWorld {
+    fn enable() -> Result<(), String> {
+        logging::log(logging::LogLevel::Info, "Hello World gadget enabled", &[], None);
+        Ok(())
+    }
+
+    fn disable() {}
+
+    fn on_setting_changed(_key: String, _value: String) {}
+}
+```
+
+The [`lifecycle`](/development/interfaces/exports/#lifecycle) interface has
+three functions:
+
+- **`enable()`** runs when the gadget is activated (at startup if enabled, or
+  when the user toggles it on). Return `Err(string)` to signal a fatal
+  initialization failure. The host disables the gadget and logs the error.
+- **`disable()`** runs when the gadget is deactivated. Clean up any state here.
+- **`on_setting_changed(key, value)`** is called whenever a setting in the
+  gadget's namespace changes. `key` is relative (e.g. `"greeting"`, not
+  `"gadgets.hello-world.greeting"`), and `value` is a JSON-encoded string.
+
+This example uses the [`logging`](/development/interfaces/imports/#logging)
+import to emit a message on enable. Log output is visible in the
+[Torchsnap devtools panel](/development/devtools/). {/* TODO: devtools page */}
+
+### Catalog entries
+
+```rust
+const QUOTES: &[(&str, &str, &str)] = &[
+    ("einstein", "Imagination is more important than knowledge.", "Albert Einstein"),
+    ("turing", "We can only see a short distance ahead, ...", "Alan Turing"),
+    ("curie", "Nothing in life is to be feared, ...", "Marie Curie"),
+    ("hopper", "The most damaging phrase in the language is: ...", "Grace Hopper"),
+    ("knuth", "Premature optimization is the root of all evil.", "Donald Knuth"),
+];
+
+fn entries() -> Vec<CatalogEntry> {
+    QUOTES
+        .iter()
+        .map(|(id, text, author)| CatalogEntry {
+            id: id.to_string(),
+            title: text.to_string(),
+            subtitle: Some(author.to_string()),
+            icon: Some(EntryIcon::HeroIcon("light-bulb".into())),
+            keywords: vec!["quote".into(), id.to_string()],
+            actions: vec![Action {
+                id: ActionId::Copy,
+                label: "Copy".into(),
+            }],
+        })
+        .collect()
+}
+```
+
+The data lives in a `QUOTES` slice, separate from the `CatalogEntry` mapping.
+`entries()` iterates it and builds one entry per quote.
+
+[`entries()`](/development/search/) returns a fixed list of
+[`CatalogEntry`](/development/interfaces/exports/#search) values. The gadget
+never sees the user's query. Instead, the host takes the list and handles all
+fuzzy-matching, scoring, and highlighting itself. Typing "einstein",
+"imagination", or "evil" into the launcher surfaces the matching quotes with
+highlighted titles automatically.
+
+This is the right mode for a finite, pre-known set of items: application
+launchers, system commands, or in this case a collection of quotes. The gadget
+declares them and the host does the rest.
+
+Each entry needs:
+
+- **`id`** — a unique identifier within this gadget, passed back in `execute()`.
+- **`title`** — the display text, highlighted with match positions by the host.
+- **`subtitle`** — optional secondary text shown below the title.
+- **`icon`** — one of `HeroIcon` (by [Heroicons](https://heroicons.com/)
+  name), `Emoji`, `DataUrl`, or `AssetIcon` (a file bundled in the gadget
+  archive).
+- **`keywords`** — additional terms the host matches against. Keyword matches
+  score the entry but don't highlight in the title.
+- **`actions`** — the first action is the primary one (activated with
+  <kbd>Enter</kbd>). Well-known [`ActionId`](/development/interfaces/exports/#search)
+  variants like `Copy`, `Open`, and `Reveal` get default keybindings and icons
+  from the host.
+
+### Search
+
+```rust
+fn search(_query: String, _matched_prefix: Option<String>) -> SearchResponse {
+    SearchResponse::Nothing
+}
+```
+
+This gadget uses catalog mode exclusively, so `search()` returns `Nothing`.
+
+[`search()`](/development/search/) exists for gadgets that need full control
+over matching and scoring. Unlike `entries()`, it is called on every keystroke
+with the raw query string, and the gadget produces
+[`ScoredEntry`](/development/interfaces/exports/#search) results itself. This
+is the right mode for dynamic data sources like API calls, database queries, or
+custom matching logic. A gadget could use a library like
+[nucleo](https://docs.rs/nucleo-matcher/) internally to implement its own fuzzy
+matching, or do simple substring filtering, or anything else. Both modes can
+coexist in the same gadget. See the [Search](/development/search/) page for the
+full details on query mode, prefix routing, and custom UI responses.
+
+### Execution
+
+```rust
+fn execute(entry: ScoredEntry, _action_id: ActionId) -> Result<PostAction, String> {
+    clipboard::write_text(&entry.title)
+        .map_err(|e| format!("clipboard write failed: {e:?}"))?;
+
+    Ok(PostAction::Dismiss)
+}
+```
+
+[`execute()`](/development/interfaces/exports/#search) runs when the user
+activates a result. It receives the full
+[`ScoredEntry`](/development/interfaces/exports/#search), where `entry.id`
+matches what you returned in `entries()`. This example copies the quote text
+to the system clipboard using the
+[`clipboard`](/development/interfaces/imports/#clipboard) host import.
+
+`PostAction::Dismiss` closes the launcher after execution. `Nothing` and
+`KeepOpen` both leave the launcher open. They are functionally identical;
+`KeepOpen` exists as a semantic signal for multi-select workflows where the
+user is expected to activate multiple results in sequence.
+
+### Manifest permissions
+
+Gadgets run in a sandbox. Host capabilities are **deny by default**: unless the
+gadget's `manifest.toml` explicitly declares a permission, the host blocks the
+call at runtime and returns a permission error. This means a gadget can only
+access what it declares upfront, and users can audit what a gadget is allowed
+to do by reading its manifest.
+
+This gadget writes to the clipboard, which requires a grant:
+
+```toml title="manifest.toml"
+[permissions]
+clipboard = true
+```
+
+Some capabilities use simple boolean flags (`clipboard`, `frecency`,
+`website-metadata`). Others require more specific declarations: HTTP access
+needs an origin allowlist, filesystem access needs glob patterns, and command
+execution needs per-binary argv-shape rules. A few interfaces like
+[`logging`](/development/interfaces/imports/#logging),
+[`settings`](/development/interfaces/imports/#settings), and
+[`assets`](/development/interfaces/imports/#assets) are always available and
+need no declaration.
+
+See [Permissions](/development/permissions/) for the full model and
+[Manifest](/development/manifests/) for the complete declaration syntax.
+
+## Building
+
+The workspace at `gadgets/.cargo/config.toml` sets `wasm32-wasip2` as the
+default target, so a plain `cargo build` from within the `gadgets/` directory
+targets WASM automatically.
+
+The `just` recipe handles the full build pipeline:
+
+```sh
+just build-gadget hello-world
+```
+
+This runs three steps in sequence:
+
+1. **Frontend** — if `frontend/package.json` exists, runs
+   `bun install && bun run build` to produce the JavaScript and CSS bundles.
+2. **Cargo** — runs `cargo build --release` targeting `wasm32-wasip2`.
+3. **Copy** — places the compiled `.wasm` binary next to `manifest.toml` at the
+   path declared in the `wasm` field.
+
+For Rust-only changes (no frontend), you can also build directly:
+
+```sh
+cd gadgets && cargo build --manifest-path hello-world/Cargo.toml --release
+```
+
+Then copy the binary manually:
+
+```sh
+cp gadgets/target/wasm32-wasip2/release/hello_world_gadget.wasm gadgets/hello-world/
+```
+
+## Testing
+
+Start the Torchsnap development server:
+
+```sh
+just start
+```
+
+In debug builds, the host automatically discovers every directory under
+`gadgets/` that contains a `manifest.toml`. Your gadget appears in the launcher
+immediately. Search for "einstein", "imagination", or "evil" to see the
+catalog entries, and press <kbd>Enter</kbd> to copy the quote to the clipboard.
+
+After making changes to the Rust code, rebuild with `just build-gadget hello-world`
+and restart the app.
+
+<Aside type="tip" title="Congratulations!">
+  You just built your first Torchsnap gadget! From here you can add query
+  mode search, custom frontend views, SQLite storage, HTTP calls, or anything
+  else the host interfaces provide. The rest of the documentation covers it all.
+</Aside>
+
+## Optional cleanup
+
+The template includes features this tutorial doesn't use. You can safely remove
+them to keep your gadget minimal:
+
+- **Delete `gadgets/hello-world/migrations/`** and remove the `[storage.sql]`
+  section from `manifest.toml` if you don't need a SQLite database.
+- **Delete `gadgets/hello-world/frontend/`** and remove the `[frontend]` section
+  from `manifest.toml` if you don't need custom views or a settings panel.
+- **Remove `[[tasks]]`** entries from `manifest.toml` if you don't need
+  scheduled background work.
+- **Remove unused `[settings]`** defaults if your gadget has no configurable
+  options.
+- **Remove unused `[permissions]`** entries. Only declare what you use.
+
+## Next steps
+
+<CardGrid>
+  <LinkCard
+    title="Search"
+    description="Catalog mode, query mode, prefix routing, and custom UI."
+    href="/development/search/"
+  />
+  <LinkCard
+    title="Manifest"
+    description="Reference for every manifest.toml field."
+    href="/development/manifests/"
+  />
+  <LinkCard
+    title="Permissions"
+    description="The full permission model and manifest syntax."
+    href="/development/permissions/"
+  />
+  <LinkCard
+    title="Interfaces"
+    description="The complete WIT contract reference."
+    href="/development/interfaces/"
+  />
+</CardGrid>
