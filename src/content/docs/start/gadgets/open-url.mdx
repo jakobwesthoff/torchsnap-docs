@@ -1,12 +1,36 @@
 ---
 title: Open URL
-description: Detect and open URLs from the search bar.
+description: Open URLs typed into the search bar.
 sidebar:
   order: 9
 ---
 
-TODO: Open URL gadget documentation.
+import Screenshot from '../../../../components/Screenshot.astro';
+import openUrlDark from '../../../../assets/screenshots/gadget-open-url-dark.png';
+import openUrlLight from '../../../../assets/screenshots/gadget-open-url-light.png';
 
-- What it does: detects URLs in query and opens them
-- Permissions: clipboard, website-metadata, opener (http/https)
-- Screenshot
+Open URL detects web addresses typed into the search bar and lets you open them
+directly in your default browser.
+
+<Screenshot dark={openUrlDark} light={openUrlLight} alt="Typing 'westhoffswelt.de' showing the detected URL with page title and favicon" />
+
+## How it works
+
+The gadget activates automatically when it recognizes a URL in the search bar.
+Two formats are supported:
+
+- **Full URL** — type `https://example.com` or `http://example.com`. Always
+  produces a result, even if the site is unreachable.
+- **Bare domain** — type a domain like `github.com` or `example.co.uk`. The
+  gadget validates the domain against the Public Suffix List and only shows a
+  result if the TLD is recognized and the site is reachable.
+
+When a URL is detected, Torchsnap fetches the page title and favicon to display
+alongside the result.
+
+## Actions
+
+| Action | Shortcut | Description |
+|---|---|---|
+| **Open in Browser** | <kbd>Enter</kbd> | Open the URL in the default browser. |
+| **Copy URL** | <kbd>Cmd</kbd>+<kbd>C</kbd> / <kbd>Ctrl</kbd>+<kbd>C</kbd> | Copy the full URL to the clipboard. |

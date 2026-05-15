@@ -1,13 +1,29 @@
 ---
 title: System Preferences
-description: Search and open macOS System Settings panes.
+description: Jump directly to a specific settings pane.
 sidebar:
   order: 2
 ---
 
-TODO: System Preferences gadget documentation.
+import Screenshot from '../../../../components/Screenshot.astro';
+import systemPrefsDark from '../../../../assets/screenshots/gadget-system-preferences-dark.png';
+import systemPrefsLight from '../../../../assets/screenshots/gadget-system-preferences-light.png';
 
-- What it does: searches and opens macOS System Settings panes
-- How to use: type setting name to find and open the right pane
-- No config, no permissions (native)
-- Screenshot
+System Preferences lets you jump directly to a specific settings pane by
+searching for its name.
+
+<Screenshot dark={systemPrefsDark} light={systemPrefsLight} alt="Searching for 'sound' showing the Sound settings pane" />
+
+## How it works
+
+All available settings panes are indexed at startup. You can also search using
+the keywords "settings" or "preferences" to browse the full list.
+
+Each result shows the pane name, "System Settings" as the subtitle, and the
+pane's icon.
+
+## Actions
+
+| Action | Shortcut | Description |
+|---|---|---|
+| **Open** | <kbd>Enter</kbd> | Open the settings pane directly. |

@@ -1,12 +1,35 @@
 ---
 title: System Commands
-description: macOS system commands like lock screen, sleep, and restart.
+description: Lock screen, sleep, restart, toggle dark mode, and more.
 sidebar:
-  order: 4
+  order: 3
 ---
 
-TODO: System Commands gadget documentation.
+import Screenshot from '../../../../components/Screenshot.astro';
+import systemCmdsDark from '../../../../assets/screenshots/gadget-system-commands-dark.png';
+import systemCmdsLight from '../../../../assets/screenshots/gadget-system-commands-light.png';
 
-- What it does: macOS system commands
-- Available commands: lock screen, sleep, restart, shutdown, appearance toggle
-- Screenshot
+System Commands provides quick access to common system actions directly from
+the launcher.
+
+<Screenshot dark={systemCmdsDark} light={systemCmdsLight} alt="Searching for 'light' showing the Toggle Dark / Light Mode command" />
+
+## Available commands
+
+| Command | Description |
+|---|---|
+| **Lock Screen** | Lock the display immediately. |
+| **Sleep** | Put the system to sleep. |
+| **Restart** | Restart the system. |
+| **Shut Down** | Shut down the system. |
+| **Log Out** | Log out the current user. |
+| **Toggle Dark / Light Mode** | Switch the system appearance between dark and light. |
+| **Empty Trash** | Empty the trash. |
+| **Start Screen Saver** | Activate the screen saver. |
+| **Eject Disc** | Eject the optical disc drive. |
+
+## Actions
+
+| Action | Shortcut | Description |
+|---|---|---|
+| **Execute** | <kbd>Enter</kbd> | Run the selected command immediately. |

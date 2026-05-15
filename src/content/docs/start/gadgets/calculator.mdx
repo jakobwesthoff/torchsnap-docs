@@ -1,16 +1,51 @@
 ---
 title: Calculator
-description: Inline calculator with history.
+description: Evaluate math expressions inline.
 sidebar:
   order: 6
 ---
 
-TODO: Calculator gadget documentation.
+import Screenshot from '../../../../components/Screenshot.astro';
+import calcDark from '../../../../assets/screenshots/gadget-calculator-dark.png';
+import calcLight from '../../../../assets/screenshots/gadget-calculator-light.png';
 
-- What it does: inline calculator with history
-- Prefix: `=`
-- Custom UI: history view, inline result display
-- Config: settings available
-- Scheduled task: retention-cleanup every 30min
-- Permissions: clipboard, settings, sql-storage
-- Screenshots: inline result + history view
+The Calculator evaluates math expressions directly in the launcher and copies
+the result to your clipboard.
+
+<Screenshot dark={calcDark} light={calcLight} alt="Evaluating '=42+23' showing the result 65" />
+
+## How to use
+
+There are two ways the Calculator activates:
+
+**Prefix mode** — type `=` followed by an expression (e.g., `=42+23`,
+`=sqrt(144)`). This opens a dedicated calculator view with the result and your
+calculation history below.
+
+**Auto-detection** — the Calculator also recognizes math expressions typed
+without the `=` prefix and shows a small inline result above the standard
+search results. This works for expressions with arithmetic operators, math
+functions, and parenthesized expressions.
+
+## Supported features
+
+- Basic arithmetic: `+`, `-`, `*`, `/`, `^`
+- Comparison operators: `>`, `<`, `==`, `!=`, `>=`, `<=`
+- Math functions: `sqrt`, `sin`, `cos`, `tan`, `log`, `abs`, and more
+- Variables: `a = 5; a + 1` returns `6`
+- Integer division returns decimals: `1 / 2` returns `0.5`
+
+## Actions
+
+| Action | Shortcut | Description |
+|---|---|---|
+| **Copy to Clipboard** | <kbd>Enter</kbd> | Copy the result and dismiss the launcher. |
+
+## Settings
+
+| Setting | Description |
+|---|---|
+| **Detect math expressions without prefix** | Toggle auto-detection on or off (default: on). |
+| **Save calculation history** | Toggle history persistence on or off (default: on). |
+| **Keep entries for** | How long history entries are kept (default: 30 days). |
+| **Clear All** | Delete the entire calculation history. |

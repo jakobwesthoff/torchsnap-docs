@@ -1,15 +1,31 @@
 ---
 title: Emoji Picker
-description: Search and pick emojis.
+description: Search and insert emoji by shortcode.
 sidebar:
   order: 7
 ---
 
-TODO: Emoji Picker gadget documentation.
+import Screenshot from '../../../../components/Screenshot.astro';
+import emojiDark from '../../../../assets/screenshots/gadget-emoji-picker-dark.png';
+import emojiLight from '../../../../assets/screenshots/gadget-emoji-picker-light.png';
 
-- What it does: search and pick emojis
-- Prefix: `:`
-- Custom UI: emoji grid view
-- Frecency-based sorting (most used float to top)
-- Permissions: clipboard, frecency
-- Screenshot: grid view
+The Emoji Picker lets you search the full Unicode emoji set by shortcode and
+copy the result to your clipboard.
+
+<Screenshot dark={emojiDark} light={emojiLight} alt="Emoji Picker showing emoji grid after typing the ':' prefix" />
+
+## How to use
+
+Type `:` followed by a shortcode or keyword — for example `:smile`, `:rocket`,
+or `:thumbsup`. Results are shown in a grid and matched by both shortcode and
+description.
+
+Typing just `:` with no query shows your most frequently used emoji. If you
+haven't used the picker yet, it shows the full emoji catalog starting with
+smileys.
+
+## Actions
+
+| Action | Shortcut | Description |
+|---|---|---|
+| **Copy to Clipboard** | <kbd>Enter</kbd> | Copy the emoji character and dismiss the launcher. |

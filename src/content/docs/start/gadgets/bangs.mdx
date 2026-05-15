@@ -1,13 +1,42 @@
 ---
 title: Bangs
-description: DuckDuckGo bang shortcuts for quick site-specific searches.
+description: DuckDuckGo bang shortcuts for quick web searches.
 sidebar:
   order: 8
 ---
 
-TODO: Bangs gadget documentation.
+import Screenshot from '../../../../components/Screenshot.astro';
+import bangsDark from '../../../../assets/screenshots/gadget-bangs-dark.png';
+import bangsLight from '../../../../assets/screenshots/gadget-bangs-light.png';
 
-- What it does: DuckDuckGo bang shortcuts
-- How to use: type bang prefix to search specific sites
-- Permissions: clipboard, sql-storage, website-metadata, opener, http (duckduckgo.com)
-- Screenshot
+Bangs let you search any website directly from the launcher using DuckDuckGo's
+bang shortcuts. Type a search query with a `!` bang token anywhere in it to
+open the target service's search page.
+
+<Screenshot dark={bangsDark} light={bangsLight} alt="Searching 'pantine !crates' to open a search on crates.io" />
+
+## How to use
+
+Add a bang token (e.g., `!g`, `!yt`, `!crates`, `!gh`) anywhere in your query.
+The bang can appear at the beginning, middle, or end — for example:
+
+- `torchsnap !gh` — search GitHub for "torchsnap"
+- `!yt rust tutorial` — search YouTube for "rust tutorial"
+- `pantine !crates` — search crates.io for "pantine"
+
+The result shows the target service name, the resolved URL, and the service's
+favicon. Over 13,000 bang shortcuts are available, covering most popular
+websites and services.
+
+## Actions
+
+| Action | Shortcut | Description |
+|---|---|---|
+| **Open in Browser** | <kbd>Enter</kbd> | Open the resolved URL in the default browser. |
+| **Copy URL** | <kbd>Cmd</kbd>+<kbd>C</kbd> / <kbd>Ctrl</kbd>+<kbd>C</kbd> | Copy the URL to the clipboard. |
+
+## Settings
+
+| Setting | Description |
+|---|---|
+| **Refresh bang database** | Re-download the bang database from DuckDuckGo to pick up new or updated shortcuts. |

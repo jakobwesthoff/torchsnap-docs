@@ -1,13 +1,30 @@
 ---
 title: App Launcher
-description: Search and launch installed macOS applications.
+description: Search and launch installed applications.
 sidebar:
   order: 1
 ---
 
-TODO: App Launcher gadget documentation.
+import Screenshot from '../../../../components/Screenshot.astro';
+import appLauncherDark from '../../../../assets/screenshots/gadget-app-launcher-dark.png';
+import appLauncherLight from '../../../../assets/screenshots/gadget-app-launcher-light.png';
 
-- What it does: searches and launches installed macOS applications
-- How it works: indexes installed apps
-- No config, no permissions (native)
-- Screenshot of it in action
+The App Launcher lets you find and open any installed application by typing
+part of its name.
+
+<Screenshot dark={appLauncherDark} light={appLauncherLight} alt="Searching for 'appl' showing applications and system settings" />
+
+## How it works
+
+All installed applications are indexed at startup and kept up to date with a
+background refresh every five minutes. Results appear instantly — there is no
+manual setup required.
+
+Each result shows the application name, its file path, and the app's own icon.
+
+## Actions
+
+| Action | Shortcut | Description |
+|---|---|---|
+| **Open** | <kbd>Enter</kbd> | Launch the application. |
+| **Reveal in file manager** | <kbd>Cmd</kbd>+<kbd>Enter</kbd> / <kbd>Ctrl</kbd>+<kbd>Enter</kbd> | Show the application in the file manager without launching it. |

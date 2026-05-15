@@ -1,13 +1,55 @@
 ---
 title: Clipboard Manager
-description: Clipboard history with search and paste.
+description: Browse and paste from clipboard history.
 sidebar:
-  order: 3
+  order: 4
 ---
 
-TODO: Clipboard Manager gadget documentation.
+import Screenshot from '../../../../components/Screenshot.astro';
+import clipboardDark from '../../../../assets/screenshots/gadget-clipboard-manager-dark.png';
+import clipboardLight from '../../../../assets/screenshots/gadget-clipboard-manager-light.png';
 
-- What it does: clipboard history with search and paste
-- Global shortcut: `CmdOrCtrl+Shift+V`
-- How to search history, paste entries
-- Screenshot
+The Clipboard Manager monitors your system clipboard and keeps a searchable
+history of everything you copy. You can browse previous entries and paste them
+back at any time.
+
+<Screenshot dark={clipboardDark} light={clipboardLight} alt="Clipboard Manager showing recent clipboard entries with a preview pane" />
+
+## How to open
+
+There are two ways to access the clipboard history:
+
+- **From the launcher** — search for "clipboard" or "paste" and select
+  "Clipboard History".
+- **Direct shortcut** — press <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> on
+  macOS or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> on other platforms to
+  open the clipboard history directly. This shortcut can be changed in the
+  gadget's [Settings](/start/settings/).
+
+## How it works
+
+The clipboard is monitored continuously in the background. Every time you copy
+something — text, code, images, file paths — it is captured and stored
+locally. The history view shows all entries with a preview, and you can search
+through them using full-text search.
+
+Selecting an entry shows its full content in the preview pane. Pressing
+<kbd>Enter</kbd> pastes it back to the clipboard with all original formats
+preserved and dismisses the launcher.
+
+## Actions
+
+| Action | Shortcut | Description |
+|---|---|---|
+| **Copy to Clipboard** | <kbd>Enter</kbd> | Paste the selected entry back to the clipboard. |
+| **Remove** | <kbd>Cmd</kbd>+<kbd>Backspace</kbd> / <kbd>Ctrl</kbd>+<kbd>Backspace</kbd> | Delete the selected entry from history. |
+
+## Settings
+
+The Clipboard Manager has its own settings panel in [Settings](/start/settings/):
+
+| Setting | Description |
+|---|---|
+| **Retention** | How long entries are kept before automatic cleanup (default: 30 days). |
+| **Bring to front on paste** | When enabled, pasting an entry moves it to the top of the history list (default: on). |
+| **Open Clipboard History shortcut** | The global shortcut for direct access (default: <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd>). |

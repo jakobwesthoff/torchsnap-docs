@@ -1,12 +1,28 @@
 ---
 title: Builtin Commands
-description: App meta-commands like Quit, Settings, and Developer Tools.
+description: Open Settings, quit Torchsnap.
 sidebar:
   order: 5
 ---
 
-TODO: Builtin Commands gadget documentation.
+import Screenshot from '../../../../components/Screenshot.astro';
+import builtinDark from '../../../../assets/screenshots/gadget-builtin-commands-dark.png';
+import builtinLight from '../../../../assets/screenshots/gadget-builtin-commands-light.png';
 
-- What it does: app meta-commands
-- Available commands: Quit, Settings, Developer Tools
-- Screenshot
+Builtin Commands provides always-available Torchsnap-specific actions.
+
+<Screenshot dark={builtinDark} light={builtinLight} alt="Searching for 'quit' showing the Quit Torchsnap command" />
+
+## Available commands
+
+| Command | Description |
+|---|---|
+| **Settings** | Open the Torchsnap [Settings](/start/settings/) window. Also searchable as "preferences", "config", or "options". |
+| **Quit Torchsnap** | Exit the application. Also searchable as "exit" or "close". |
+| **Developer Tools** | Open the built-in developer tools for debugging. |
+
+## Actions
+
+| Action | Shortcut | Description |
+|---|---|---|
+| **Execute** | <kbd>Enter</kbd> | Run the selected command. |
