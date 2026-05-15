@@ -7,7 +7,8 @@
     "start": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "build:favicon": "bun run tools/build-favicon.ts"
   },
   "dependencies": {
     "@astrojs/starlight": "^0.39.2",
