@@ -11,7 +11,7 @@ Torchsnap is extensible through **gadgets**: sandboxed WebAssembly components
 that plug into the launcher's search pipeline. A gadget can provide search
 results, render custom UI inside the launcher, store data in a local SQLite
 database, make HTTP requests, and run system commands. All of this runs within
-a permission sandbox controlled by the gadget's manifest.
+a permission sandbox controlled by the gadget's [manifest](/development/manifests/).
 
 ## How gadgets work
 
@@ -25,60 +25,77 @@ The boundary between host and gadget is defined by a
 [WIT](https://component-model.bytecodealliance.org/design/wit.html)
 (WebAssembly Interface Types) contract. WIT is a typed interface definition
 language that specifies exactly what the gadget implements and what the host
-provides. The full contract lives in a single file:
+provides. The full contract lives in a single file
+(`gadgets/gadget-sdk/wit/torchsnap-gadget.wit`) and is reproduced in the
+[Interfaces](/development/interfaces/) section for reference.
 
-```
-gadgets/gadget-sdk/wit/torchsnap-gadget.wit
-```
+The contract is organized into two sides.
 
-The contract is organized into two sides:
+### Exports
 
-**Exports** are interfaces the gadget implements and the host calls into:
-
-| Interface | Purpose |
-|---|---|
-| `lifecycle` | Activation, deactivation, and settings change notifications. |
-| `search` | Catalog entries, query-driven search, and result execution. |
-| `messaging` | Custom RPC between the gadget's frontend view and its backend. |
-| `tasks` | Cron-scheduled background work. |
-
-**Imports** are capabilities the host provides to the gadget:
+Exports are interfaces the gadget implements and the host calls into:
 
 | Interface | Purpose |
 |---|---|
-| `logging` | Structured log output with timing spans. |
-| `settings` | Read settings scoped to the gadget's namespace. |
-| `assets` | Read files bundled inside the gadget archive. |
-| `platform` | Detect the host OS and CPU architecture. |
-| `path-resolver` | Resolve substitution variables to host paths. |
-| `clipboard` | Write text to the system clipboard. |
-| `frecency` | Query the gadget's own frecency ranking data. |
-| `sql-storage` | Per-gadget SQLite database with managed migrations. |
-| `http` | Synchronous HTTP requests to declared origins. |
-| `filesystem` | Read host files matching declared glob patterns. |
-| `opener` | Open URLs and file paths via OS default handlers. |
-| `command` | Run system processes with argv-shape constraints. |
-| `website-metadata` | Look up cached website titles and favicons. |
+| [`lifecycle`](/development/interfaces/exports/#lifecycle) | Activation, deactivation, and settings change notifications. |
+| [`search`](/development/interfaces/exports/#search) | Catalog entries, query-driven search, and result execution. |
+| [`messaging`](/development/interfaces/exports/#messaging) | Custom RPC between the gadget's frontend view and its backend. |
+| [`tasks`](/development/interfaces/exports/#tasks) | Cron-scheduled background work. |
 
-Every import except `logging`, `settings`, `assets`, `platform`, and
-`path-resolver` requires an explicit permission grant in the gadget's
+### Imports
+
+Imports are capabilities the host provides to the gadget:
+
+| Interface | Purpose |
+|---|---|
+| [`logging`](/development/interfaces/imports/#logging) | Structured log output with timing spans. |
+| [`settings`](/development/interfaces/imports/#settings) | Read settings scoped to the gadget's namespace. |
+| [`assets`](/development/interfaces/imports/#assets) | Read files bundled inside the gadget archive. |
+| [`platform`](/development/interfaces/imports/#platform) | Detect the host OS and CPU architecture. |
+| [`path-resolver`](/development/interfaces/imports/#path-resolver) | Resolve substitution variables to host paths. |
+| [`clipboard`](/development/interfaces/imports/#clipboard) | Write text to the system clipboard. |
+| [`frecency`](/development/interfaces/imports/#frecency) | Query the gadget's own frecency ranking data. |
+| [`sql-storage`](/development/interfaces/imports/#sql-storage) | Per-gadget SQLite database with managed migrations. |
+| [`http`](/development/interfaces/imports/#http) | Synchronous HTTP requests. |
+| [`filesystem`](/development/interfaces/imports/#filesystem) | Read host files. |
+| [`opener`](/development/interfaces/imports/#opener) | Open URLs and file paths via OS default handlers. |
+| [`command`](/development/interfaces/imports/#command) | Run system processes. |
+| [`website-metadata`](/development/interfaces/imports/#website-metadata) | Look up cached website titles and favicons. |
+
+Every import except [`logging`](/development/interfaces/imports/#logging),
+[`settings`](/development/interfaces/imports/#settings),
+[`assets`](/development/interfaces/imports/#assets),
+[`platform`](/development/interfaces/imports/#platform), and
+[`path-resolver`](/development/interfaces/imports/#path-resolver) requires an
+explicit permission grant in the gadget's
 [manifest](/development/manifests/). Capabilities not declared are
 unreachable at runtime. The host returns a permission error if the gadget
-tries to call them.
+tries to call them. Permissions that go beyond a simple boolean toggle are
+scoped further: HTTP requests are restricted to declared origins, filesystem
+reads to declared glob patterns, and command execution to per-binary
+argv-shape rules. See [Permissions](/development/permissions/) for the full
+model.
 
 ## The Rust SDK
 
-The `torchsnap-gadget-sdk` crate handles WIT binding generation and provides
-ergonomic helpers on top of the raw interfaces. Gadgets depend on it and import
+Any language that can compile to `wasm32-wasip2` and produce a valid component
+can be used to write gadgets. The WIT contract is language-agnostic, and the
+host does not care what language produced the WASM binary. For Rust, the
+`torchsnap-gadget-sdk` crate provides a convenience layer: it handles WIT
+binding generation, adds ergonomic helpers on top of the raw interfaces, and is
+what all bundled gadgets are built with. Gadgets using the SDK import
 everything through its prelude:
 
 ```rust
 use torchsnap_gadget_sdk::prelude::*;
 ```
 
-This brings the four guest traits (`LifecycleGuest`, `SearchGuest`,
-`MessagingGuest`, `TasksGuest`), all search-related types, host import
-functions, and the registration macros into scope.
+This brings the four guest traits
+([`LifecycleGuest`](/development/interfaces/exports/#lifecycle),
+[`SearchGuest`](/development/interfaces/exports/#search),
+[`MessagingGuest`](/development/interfaces/exports/#messaging),
+[`TasksGuest`](/development/interfaces/exports/#tasks)), all search-related
+types, host import functions, and the registration macros into scope.
 
 A minimal gadget looks like this:
 
@@ -125,30 +142,32 @@ impl SearchGuest for MyGadget {
 }
 ```
 
-`define_gadget!` registers the type as the WASM component's entry point.
-`impl_noop_messaging!` and `impl_noop_tasks!` generate no-op stubs for the
-two exports this gadget doesn't use. Both are mandatory parts of the WIT
-world, so every gadget must provide an implementation.
+The [Getting Started](/development/hello-world/) tutorial walks through every
+part of this example in detail.
 
 ## Frontend SDK
 
-Gadgets that render custom UI in the launcher ship a React frontend alongside
-their WASM backend. The `@torchsnap/gadget-sdk` TypeScript package provides
-types, hooks, and shared components for building these views.
+Gadgets that only provide search results through the [catalog or query](/development/search/) interface
+do not need a frontend at all. A frontend is only required for gadgets that
+render custom views in the launcher (like the [Calculator](/start/gadgets/calculator/)'s history view or the
+[Emoji Picker](/start/gadgets/emoji-picker/)'s grid) or provide their own settings panel. Both use the same
+[React](https://react.dev/)-based frontend SDK.
 
-The host owns the React instance. Gadget frontends import React and all SDK
-hooks through the SDK's shims, which resolve to the host's implementations at
-runtime. This keeps gadget bundles small and guarantees a single React context
-across host and gadgets.
+The `@torchsnap/gadget-sdk` TypeScript package provides types, hooks, and
+shared components for building these views. The host owns the
+[React](https://react.dev/) instance. Gadget frontends import React and all
+SDK hooks through the SDK's shims, which resolve to the host's implementations
+at runtime. This keeps gadget bundles small and guarantees a single React
+context across host and gadgets.
 
 Frontend development is covered in the [Frontend](/development/frontend/)
 section.
 
 ## The template gadget
 
-The `gadgets/template/` directory in the Torchsnap repository is a complete
-starting point for new gadgets. It demonstrates catalog entries, prefix-routed
-custom UI, settings, SQLite storage, messaging RPC, and scheduled tasks. Copy
+The `gadgets/template/` directory in the [Torchsnap repository](https://github.com/jakobwesthoff/torchsnap) is a complete
+starting point for new gadgets. It demonstrates [catalog entries](/development/search/), prefix-routed
+custom UI, [settings](/development/interfaces/imports/#settings), [SQLite storage](/development/interfaces/imports/#sql-storage), [messaging](/development/interfaces/exports/#messaging) RPC, and [scheduled tasks](/development/interfaces/exports/#tasks). Copy
 it, rename the gadget ID, and start from there.
 
 ## Next steps
