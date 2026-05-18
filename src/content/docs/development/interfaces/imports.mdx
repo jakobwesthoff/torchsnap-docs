@@ -5,21 +5,784 @@ sidebar:
   order: 2
 ---
 
-TODO: Exhaustive reference for every host import.
+import { Aside } from '@astrojs/starlight/components';
 
-One section per interface with WIT contract, SDK helpers, and usage examples:
+This page is the exhaustive reference for every host-provided interface in the
+`gadget` world. Each section shows the WIT contract, SDK helpers where
+available, and a usage example. For background on the WIT notation, see the
+[WIT Primer](/development/interfaces/).
 
-- logging: log levels, structured metadata, timing spans
-- settings: get/get\_or/get\_or\_else, JSON-encoded values
-- assets: reading bundled files from the gadget archive
-- platform: OS and architecture detection
-- path-resolver: substitution variables
-- clipboard: write-text (write-only, no read)
-- frecency: is-enabled, top-items (read-only, host tracks automatically)
-- sql-storage: connection resource, execute/query, migrations, sdk Row helpers
-- http: fetch with http-request/http-response, error variants, origin gating
-- filesystem: read-file, file-exists, metadata, glob allowlist
-- opener: open-url, open-path, reveal-path
-- command: run with argv constraints, command-options, command-result
-- website-metadata: lookup with cached/blocking modes, cache-entry, sdk helpers
-- types: shared types (entry-icon, action-id, action) used across interfaces
+## Shared types
+
+The `types` interface holds type definitions shared across both imports and
+exports. It is imported into the `gadget` world so that interfaces on both sides
+resolve to the same generated types.
+
+```wit
+interface types {
+  variant entry-icon {
+    hero-icon(string),
+    data-url(string),
+    asset-icon(string),
+    emoji(string),
+  }
+
+  variant action-id {
+    open, copy, reveal, open-with, delete, open-settings,
+    custom(string),
+  }
+
+  record action {
+    id: action-id,
+    label: string,
+  }
+}
+```
+
+| Type | Description |
+|---|---|
+| `EntryIcon` | Icon for a search result. `HeroIcon` takes a [Heroicons](https://heroicons.com/) name, `DataUrl` a base64-encoded inline image, `AssetIcon` a path relative to the gadget archive, and `Emoji` a Unicode emoji character. |
+| `ActionId` | Identifies an action on a search result. Well-known variants (`Open`, `Copy`, `Reveal`, `OpenWith`, `Delete`, `OpenSettings`) receive default keybindings and icons from the host. `Custom(string)` is the escape hatch for gadget-specific actions. |
+| `Action` | Pairs an `ActionId` with a display label. The first action in an entry's list is the primary action, activated with <kbd>Enter</kbd>. |
+
+These types are available in the SDK prelude as `EntryIcon`, `ActionId`, and
+`Action`.
+
+## Logging
+
+Structured log output with severity levels and timing spans. Log messages appear
+in the [Torchsnap devtools panel](/development/devtools/).
+
+<Aside type="tip">Always available. No manifest permission required.</Aside>
+
+### WIT contract
+
+```wit
+interface logging {
+  enum log-level { trace, debug, info, warn, error }
+
+  type metadata-entry = tuple<string, string>;
+
+  log: func(level: log-level, message: string,
+            metadata: list<metadata-entry>, span: option<u64>);
+  span-start: func(name: string, parent: option<u64>,
+                    metadata: list<metadata-entry>) -> u64;
+  span-end: func(span-id: u64, metadata: list<metadata-entry>);
+}
+```
+
+### SDK helpers
+
+The SDK re-exports the raw functions at `logging::log`, `logging::span_start`,
+and `logging::span_end`. On top of these, it provides convenience macros that
+cover the common case of logging a message with optional key-value metadata
+outside of any span:
+
+| Macro | Level |
+|---|---|
+| `log_trace!("msg", key => value, ...)` | Trace |
+| `log_debug!("msg", key => value, ...)` | Debug |
+| `log_info!("msg", key => value, ...)` | Info |
+| `log_warn!("msg", key => value, ...)` | Warn |
+| `log_error!("msg", key => value, ...)` | Error |
+
+The `key => value` pairs are optional and accept anything that implements
+`ToString`. The macros always pass `None` for the span argument. For
+span-scoped log entries, call `logging::log(...)` directly with a handle from
+`span_start`.
+
+### Example
+
+```rust
+log_info!("Fetching results", "source" => "api", "limit" => 50);
+
+let span = logging::span_start("api-call", None, &[]);
+// ... do work ...
+logging::span_end(span, &[("status".into(), "ok".into())]);
+```
+
+Spans can be nested by passing the parent handle to `span_start`:
+
+```rust
+let outer = logging::span_start("enable", None, &[]);
+let inner = logging::span_start("load-data", Some(outer), &[]);
+// ...
+logging::span_end(inner, &[]);
+logging::span_end(outer, &[]);
+```
+
+## Settings
+
+Read access to the gadget's configuration values. Keys are scoped to the
+gadget's namespace: the host strips the `gadgets.<id>.` prefix automatically, so
+a key stored as `gadgets.my-gadget.theme` is accessed as just `"theme"`. Values
+are JSON-encoded strings.
+
+<Aside type="tip">Always available. No manifest permission required.</Aside>
+
+### WIT contract
+
+```wit
+interface settings {
+  get: func(key: string) -> option<string>;
+}
+```
+
+The raw function returns the JSON string or `None` if the key has never been
+written (neither by a manifest `[settings]` default nor at runtime).
+
+### SDK helpers
+
+The SDK module at `settings` wraps the raw call with typed JSON parsing:
+
+| Function | Description |
+|---|---|
+| `settings::get<T>(key)` | Fetch and parse. Returns `None` for both unset keys and parse failures. |
+| `settings::get_or<T>(key, default)` | Like `get`, but returns `default` on `None`. |
+| `settings::get_or_else<T>(key, f)` | Like `get_or`, but calls `f()` lazily to produce the default. |
+
+`T` must implement `serde::de::DeserializeOwned`.
+
+### Example
+
+```rust
+let theme: String = settings::get_or("theme", "dark".into());
+let max_results: u32 = settings::get_or("max-results", 10);
+let verbose: bool = settings::get_or("verbose", false);
+```
+
+<Aside type="caution" title="TODO: Settings are read-only">
+  Gadgets can currently only read settings, not write them programmatically.
+  Configuration changes must go through the settings UI. A write API is planned.
+</Aside>
+
+## Assets
+
+Read files bundled inside the gadget archive. Useful for shipping static data
+(word lists, icon sets, templates, configuration files) alongside your WASM
+binary. Paths are relative to the gadget's root directory.
+
+<Aside type="tip">Always available. No manifest permission required.</Aside>
+
+### WIT contract
+
+```wit
+interface assets {
+  variant assets-error {
+    invalid-path(string),
+    not-found,
+    io-error(string),
+  }
+
+  read: func(path: string) -> result<list<u8>, assets-error>;
+  exists: func(path: string) -> result<bool, assets-error>;
+}
+```
+
+| Function | Description |
+|---|---|
+| `read(path)` | Read the file at `path` and return its contents as bytes. |
+| `exists(path)` | Check whether a file exists at `path`. |
+
+The host validates that paths stay inside the gadget root. Absolute paths, `..`
+segments, backslashes, NUL bytes, and Windows drive letters are rejected with
+`InvalidPath`.
+
+### Example
+
+```rust
+let bytes = assets::read("data/wordlist.txt")
+    .map_err(|e| format!("read bundled wordlist: {e:?}"))?;
+let text = String::from_utf8(bytes)
+    .map_err(|e| format!("invalid UTF-8: {e}"))?;
+```
+
+## Platform
+
+Detect the host operating system and CPU architecture at runtime. Useful for
+gadgets that need to adapt behavior or select platform-specific binaries for
+[command](#command) execution.
+
+<Aside type="tip">Always available. No manifest permission required.</Aside>
+
+### WIT contract
+
+```wit
+interface platform {
+  variant os { macos, linux, windows, other(string) }
+  variant arch { x86-64, aarch64, other(string) }
+
+  current-os: func() -> os;
+  current-arch: func() -> arch;
+}
+```
+
+### Example
+
+```rust
+use torchsnap_gadget_sdk::platform::{self, Os, Arch};
+
+match platform::current_os() {
+    Os::Macos => { /* macOS-specific path */ }
+    Os::Linux => { /* Linux-specific path */ }
+    _ => { /* fallback */ }
+}
+```
+
+## Path resolver
+
+Resolve [substitution variables](/development/manifest/#substitution-variables)
+to their actual host paths at runtime. Useful when constructing file paths
+dynamically rather than hardcoding platform-specific locations.
+
+<Aside type="tip">Always available. No manifest permission required.</Aside>
+
+### WIT contract
+
+```wit
+interface path-resolver {
+  variant resolve-error {
+    unknown-variable(string),
+    unterminated(string),
+  }
+
+  resolve: func(template: string) -> result<string, resolve-error>;
+}
+```
+
+The following variables are recognized:
+
+| Variable | Resolves to |
+|---|---|
+| `{"${gadget-data}"}` | The gadget's host-managed state directory. |
+| `{"${gadget-archive}"}` | The gadget's code root (archive or directory). |
+| `{"${home}"}` | The user's home directory. |
+| `{"${xdg-config}"}` | The XDG config directory (or platform equivalent). |
+| `{"${xdg-data}"}` | The XDG data directory (or platform equivalent). |
+
+`UnknownVariable` is returned for unrecognized variable names.
+`Unterminated` is returned when `${` is not closed before the end of the
+template string.
+
+### Example
+
+```rust
+let data_dir = path_resolver::resolve("${gadget-data}/cache")?;
+let config = path_resolver::resolve("${xdg-config}/my-app/config.json")?;
+```
+
+## Clipboard
+
+Write-only access to the system clipboard. This is what most gadgets use in
+their `execute()` implementation to copy a result. Read access is intentionally
+not exposed for privacy reasons.
+
+Requires permission [`clipboard = true`](/development/manifest/#boolean-flags) in the manifest.
+
+### WIT contract
+
+```wit
+interface clipboard {
+  variant clipboard-error {
+    backend-failure(string),
+  }
+
+  write-text: func(text: string) -> result<_, clipboard-error>;
+}
+```
+
+### Example
+
+```rust
+clipboard::write_text(&entry.title)
+    .map_err(|e| format!("copy to clipboard: {e:?}"))?;
+```
+
+## Frecency
+
+Read-only access to the gadget's own frecency ranking data. The host
+automatically records which results the user activates and applies frecency
+score bonuses to query results. This interface exists for gadgets that need to
+read that data back to drive their own UI. The
+[Emoji Picker](/start/gadgets/emoji-picker/), for example, uses it to show
+recently used emoji when the search bar is empty.
+
+<Aside type="note">
+  Frecency data is scoped to the gadget. You only see rankings for your own
+  entries, never results from other gadgets.
+</Aside>
+
+Requires permission [`frecency = true`](/development/manifest/#boolean-flags) in the manifest.
+
+### WIT contract
+
+```wit
+interface frecency {
+  record frecency-item {
+    item-id: string,
+    score: u32,
+  }
+
+  is-enabled: func() -> bool;
+  top-items: func(limit: u32) -> list<frecency-item>;
+}
+```
+
+| Function | Description |
+|---|---|
+| `is_enabled()` | Whether frecency tracking is active for this gadget. |
+| `top_items(limit)` | Return the top `limit` items ranked by frecency score, highest first. |
+
+The `score` field is an opaque relative ordering key. Treat it as a rank, not an
+absolute magnitude.
+
+### Example
+
+```rust
+if frecency::is_enabled() {
+    let top = frecency::top_items(20);
+    for item in &top {
+        // item.item_id matches the id field from your CatalogEntry or ScoredEntry
+    }
+}
+```
+
+## SQL storage
+
+Per-gadget isolated SQLite database. The host creates the database file and runs
+migrations declared in the manifest's
+[`[storage.sql]`](/development/manifest/#sql-storage) section before the
+gadget's `enable()` is called. By the time your code runs, the schema is ready.
+
+Requires a [`[storage.sql]`](/development/manifest/#sql-storage) section in the manifest declaring the migration files.
+
+### WIT contract
+
+```wit
+interface sql-storage {
+  variant sql-value {
+    null,
+    integer(s64),
+    real(f64),
+    text(string),
+    blob(list<u8>),
+  }
+
+  resource sql-handle {
+    execute: func(sql: string, params: list<sql-value>) -> result<u64, string>;
+    query: func(sql: string, params: list<sql-value>) -> result<list<list<sql-value>>, string>;
+  }
+
+  connection: func() -> sql-handle;
+}
+```
+
+| Function | Description |
+|---|---|
+| `connection()` | Obtain a handle to the gadget's database. |
+| `handle.execute(sql, params)` | Run INSERT, UPDATE, or DELETE. Returns the number of rows affected. |
+| `handle.query(sql, params)` | Run SELECT. Returns all matching rows, each as a list of `SqlValue` in column order. |
+
+### SDK helpers
+
+The SDK module at `sql_storage` provides typed column access and convenience
+query functions on top of the raw interface:
+
+**`Row`** wraps a raw `Vec<SqlValue>` with typed accessors:
+
+| Method | Returns |
+|---|---|
+| `row.integer(idx)` | `Option<i64>` |
+| `row.text(idx)` | `Option<&str>` |
+| `row.real(idx)` | `Option<f64>` |
+| `row.blob(idx)` | `Option<&[u8]>` |
+| `row.is_null(idx)` | `bool` (also `true` for out-of-bounds indices) |
+
+**Query helpers:**
+
+| Function | Description |
+|---|---|
+| `sql_storage::query_all(db, sql, params)` | Returns `Result<Vec<Row>, String>`. |
+| `sql_storage::query_one(db, sql, params)` | Returns `Result<Option<Row>, String>`. |
+
+**`SqlValue::from` conversions** are implemented for `&str`, `String`, `i64`,
+`f64`, and `Vec<u8>`, so you can write `SqlValue::from("text")` or
+`SqlValue::from(42_i64)` instead of the explicit variant constructors.
+
+### Example
+
+```rust
+let db = sql_storage::connection();
+
+db.execute(
+    "INSERT INTO history (expression, result, computed_at) VALUES (?, ?, ?)",
+    &[
+        SqlValue::from(expression),
+        SqlValue::from(result),
+        SqlValue::from(timestamp),
+    ],
+)?;
+
+let rows = sql_storage::query_all(
+    &db,
+    "SELECT expression, result FROM history ORDER BY computed_at DESC LIMIT ?",
+    &[SqlValue::from(50_i64)],
+)?;
+for row in &rows {
+    let expr = row.text(0).unwrap_or("");
+    let result = row.text(1).unwrap_or("");
+}
+```
+
+<Aside type="note">
+  There is currently no `transaction()` wrapper in the WIT interface. If you
+  need transactions, manage them manually with `db.execute("BEGIN", &[])`,
+  `db.execute("COMMIT", &[])`, and `db.execute("ROLLBACK", &[])`.
+</Aside>
+
+## HTTP
+
+Synchronous HTTP client for making requests to external services. The interface
+supports all standard methods, custom headers, request bodies, timeouts, and
+response size limits.
+
+Requires permission [`[permissions.http]`](/development/manifest/#http) in the manifest.
+
+### WIT contract
+
+```wit
+interface http {
+  variant http-method {
+    get, post, put, patch, delete, head,
+    other(string),
+  }
+
+  record http-request {
+    url: string,
+    method: http-method,
+    headers: list<tuple<string, string>>,
+    body: option<list<u8>>,
+    timeout-ms: option<u32>,
+    max-body-size: option<u64>,
+    insecure-tls: bool,
+  }
+
+  record http-response {
+    status: u16,
+    headers: list<tuple<string, string>>,
+    body: list<u8>,
+  }
+
+  variant http-error {
+    permission-denied(string),
+    connection-refused(string),
+    timeout,
+    dns-failed(string),
+    tls-failed(string),
+    invalid-url(string),
+    other(string),
+  }
+
+  fetch: func(request: http-request) -> result<http-response, http-error>;
+}
+```
+
+`fetch` returns an `HttpError` only when no HTTP response was produced at all
+(DNS failure, connection refused, timeout, etc.). HTTP `4xx` and `5xx` status
+codes are returned as a normal `HttpResponse` with the corresponding `status`
+field.
+
+The `insecure_tls` flag disables TLS certificate verification. This is intended
+for local development endpoints with self-signed certificates.
+
+### Example
+
+```rust
+let response = http::fetch(&HttpRequest {
+    url: "https://api.example.com/data".into(),
+    method: HttpMethod::Get,
+    headers: vec![("Accept".into(), "application/json".into())],
+    body: None,
+    timeout_ms: Some(5000),
+    max_body_size: None,
+    insecure_tls: false,
+})?;
+
+let body = String::from_utf8(response.body)
+    .map_err(|e| format!("invalid UTF-8: {e}"))?;
+```
+
+## Filesystem
+
+Read-only access to files on the host filesystem. You can read file contents,
+check whether a file exists, and query metadata like size and modification time.
+
+Requires permission [`[permissions.fs]`](/development/manifest/#filesystem) in the manifest.
+
+### WIT contract
+
+```wit
+interface filesystem {
+  variant fs-error {
+    permission-denied(string),
+    invalid-path(string),
+    not-found,
+    io(string),
+  }
+
+  record file-metadata {
+    size: u64,
+    modified-unix-ms: u64,
+    is-symlink: bool,
+  }
+
+  read-file: func(path: string) -> result<list<u8>, fs-error>;
+  file-exists: func(path: string) -> bool;
+  metadata: func(path: string) -> result<file-metadata, fs-error>;
+}
+```
+
+| Function | Description |
+|---|---|
+| `read_file(path)` | Read the entire file and return its contents as bytes. |
+| `file_exists(path)` | Returns `false` for missing files, permission errors, and invalid paths alike. |
+| `metadata(path)` | Returns the file's size, last-modified timestamp, and whether it is a symlink. `is_symlink` reflects the path before symlink resolution. |
+
+Paths must be absolute. The host rejects paths containing `..`, `.`, `//`,
+or NUL bytes with `InvalidPath`.
+
+### Example
+
+```rust
+if filesystem::file_exists("/usr/local/bin/my-tool") {
+    let content = filesystem::read_file("/usr/local/bin/my-tool")?;
+}
+
+let meta = filesystem::metadata("/some/file.txt")?;
+log_info!("File size", "bytes" => meta.size);
+```
+
+## Opener
+
+Open URLs in the default browser, launch files with their default application,
+or reveal files in the system file manager.
+
+Requires permission [`[permissions.opener]`](/development/manifest/#opener) in the manifest.
+
+### WIT contract
+
+```wit
+interface opener {
+  variant opener-error {
+    permission-denied(string),
+    invalid-url(string),
+    backend-failure(string),
+  }
+
+  open-url: func(url: string) -> result<_, opener-error>;
+  open-path: func(path: string) -> result<_, opener-error>;
+  reveal-path: func(path: string) -> result<_, opener-error>;
+}
+```
+
+| Function | Permission required | Description |
+|---|---|---|
+| `open_url(url)` | URL scheme in `schemes` list | Open the URL in the default handler for its scheme. |
+| `open_path(path)` | `open-path = true` | Launch the file at `path` with its default application. |
+| `reveal_path(path)` | `reveal-path = true` | Show the file in the system file manager (Finder, Nautilus, etc.). |
+
+### Example
+
+```rust
+opener::open_url("https://example.com")
+    .map_err(|e| format!("open URL: {e:?}"))?;
+
+opener::reveal_path("/Users/me/Documents/report.pdf")
+    .map_err(|e| format!("reveal file: {e:?}"))?;
+```
+
+## Command
+
+Run system processes and capture their output. Commands are executed directly
+without a shell wrapper, so shell features like pipes, globbing, or environment
+variable expansion are not available. Use the [platform](#platform) interface to
+determine which binaries are appropriate for the current OS.
+
+Requires permission [`[[permissions.command]]`](/development/manifest/#command-execution) in the manifest.
+
+### WIT contract
+
+```wit
+interface command {
+  record command-options {
+    args: list<string>,
+    cwd: option<string>,
+    env: list<tuple<string, string>>,
+    stdin: option<list<u8>>,
+    timeout-ms: option<u32>,
+    max-output-bytes: option<u64>,
+  }
+
+  record command-result {
+    exit-code: option<s32>,
+    signal: option<string>,
+    timed-out: bool,
+    stdout: list<u8>,
+    stderr: list<u8>,
+  }
+
+  variant command-error {
+    permission-denied(string),
+    spawn-failed(string),
+    timeout,
+    output-too-large(tuple<list<u8>, list<u8>>),
+  }
+
+  run: func(binary: string, options: command-options) -> result<command-result, command-error>;
+}
+```
+
+| Field | Description |
+|---|---|
+| `exit_code` | The process exit code. `None` if the process was killed by a signal. |
+| `signal` | The signal name (e.g. `"TERM"`) if the process was killed. |
+| `timed_out` | `true` if the process exceeded `timeout_ms`. |
+| `OutputTooLarge` | Returned when output exceeds `max_output_bytes`. The error carries the captured output up to that point. |
+
+### SDK builder
+
+The SDK module at `command` provides a builder API on top of the raw `run`
+function:
+
+```rust
+use torchsnap_gadget_sdk::command;
+
+let result = command::run("/usr/bin/git")
+    .args(["log", "--oneline", "-5"])
+    .cwd("/path/to/repo")
+    .timeout(std::time::Duration::from_secs(10))
+    .invoke()?;
+
+let stdout = String::from_utf8(result.stdout)
+    .map_err(|e| format!("invalid UTF-8: {e}"))?;
+```
+
+Builder methods:
+
+| Method | Description |
+|---|---|
+| `.arg(value)` | Append a single argument. |
+| `.args(iter)` | Append multiple arguments. |
+| `.cwd(path)` | Set the working directory. |
+| `.env(key, value)` | Add an environment variable. |
+| `.stdin(bytes)` | Provide stdin data. |
+| `.timeout(duration)` | Set the execution timeout. |
+| `.max_output_bytes(max)` | Set the output size limit. |
+| `.invoke()` | Execute and return `Result<CommandResult, CommandError>`. |
+
+## Website metadata
+
+Look up website titles, descriptions, and favicons through a host-managed cache
+shared across all gadgets. Useful for gadgets that display rich metadata for URLs
+(bookmark managers, link aggregators, history browsers).
+
+Requires permission [`website-metadata = true`](/development/manifest/#boolean-flags) in the manifest.
+
+### WIT contract
+
+```wit
+interface website-metadata {
+  use types.{entry-icon};
+
+  variant lookup-mode { cached, blocking }
+
+  record cache-entry {
+    title: option<string>,
+    description: option<string>,
+    favicon: entry-icon,
+  }
+
+  variant lookup-result {
+    hit(cache-entry),
+    reachable-no-data,
+    unreachable,
+    pending,
+  }
+
+  variant website-metadata-error {
+    permission-denied(string),
+    invalid-domain(string),
+  }
+
+  lookup: func(domain: string, mode: lookup-mode) -> result<lookup-result, website-metadata-error>;
+}
+```
+
+The `mode` parameter controls caching behavior:
+
+| Mode | Behavior |
+|---|---|
+| `Cached` | Return immediately from cache. If the domain is not cached, the host schedules a background fetch and returns `Pending`. |
+| `Blocking` | Wait for the fetch to complete if not cached. Never returns `Pending`. |
+
+Use `Cached` in search functions (called on every keystroke) to avoid blocking.
+Use `Blocking` only when the result is genuinely needed before proceeding (e.g.,
+deciding whether to suppress a result for an unreachable domain).
+
+<Aside type="caution" title="Blocking in search paths">
+  Both `entries()` and `search()` run on every keystroke. Using `Blocking` mode
+  inside these functions stalls your gadget's response until the network
+  request completes, delaying its results for the user. It is almost always
+  better to use `Cached` and show
+  placeholder information (like a generic icon) while the host fetches the real
+  data in the background. The next keystroke will pick up the cached result
+  once it arrives. Reserve `Blocking` for code paths that run outside the
+  keystroke loop, like `enable()` or `run_task()`.
+</Aside>
+
+`InvalidDomain` is returned when the input contains a scheme, port, path,
+whitespace, or other characters that are not part of a bare domain name.
+
+### SDK helpers
+
+The SDK module at `website_metadata` provides a simplified API that folds errors
+and the raw lookup result into a flat enum:
+
+```rust
+pub enum Metadata {
+    Found(CacheEntry),
+    NoData,
+    Unreachable,
+    Pending,
+}
+```
+
+| Function | Description |
+|---|---|
+| `website_metadata::lookup_cached(domain)` | Non-blocking lookup. May return `Pending`. |
+| `website_metadata::lookup_blocking(domain)` | Blocking lookup. Never returns `Pending`. |
+| `website_metadata::favicon_or(domain, fallback)` | Non-blocking cached lookup. Returns the favicon on cache hit, or `fallback` for all other outcomes. |
+
+Permission and validation errors are logged and folded into `Unreachable`.
+
+### Example
+
+```rust
+// In a search function (non-blocking):
+let icon = website_metadata::favicon_or(
+    &domain,
+    EntryIcon::HeroIcon("globe-alt".into()),
+);
+
+// When the result matters for logic (blocking):
+match website_metadata::lookup_blocking(&domain) {
+    website_metadata::Metadata::Found(entry) => {
+        let title = entry.title.unwrap_or_default();
+        let favicon = entry.favicon;
+    }
+    website_metadata::Metadata::Unreachable => {
+        // Domain not reachable, suppress or show fallback
+    }
+    _ => {}
+}
+```
