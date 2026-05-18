@@ -1,435 +1,215 @@
 ---
-title: Interfaces
-description: Overview of all host-provided and gadget-implemented interfaces.
+title: WIT Primer
+description: How to read the WebAssembly Interface Types definition language.
 sidebar:
-  label: Introduction
+  label: WIT Primer
   order: 0
 ---
 
-import { Aside, CardGrid, LinkCard } from '@astrojs/starlight/components';
+import { Aside } from '@astrojs/starlight/components';
 
-Gadgets run inside a sandbox. They cannot call host APIs directly. Instead, the
-host and gadget communicate through a set of typed interfaces that define exactly
-what the gadget must implement, what capabilities the host offers, and what data
-shapes cross the boundary. These interfaces are specified in
 [WIT](https://component-model.bytecodealliance.org/design/wit.html)
-(WebAssembly Interface Types), the interface definition language of the
-WebAssembly Component Model. The [WIT Primer](/development/interfaces/wit-primer/)
-covers the notation in detail.
+(WebAssembly Interface Types) is the interface definition language of the
+[WebAssembly Component Model](https://component-model.bytecodealliance.org/).
+Think of it as the equivalent of Protocol Buffers for WebAssembly: it describes
+the functions, types, and error shapes that two sides of a boundary exchange,
+without prescribing the implementation language on either side.
 
-The interfaces are split into two sides. **Imports** are capabilities the host
-provides to your gadget: clipboard access, HTTP requests, file I/O, SQLite
-storage, and more. **Exports** are interfaces your gadget implements to deliver
-results back to the user: search entries, custom views, launcher actions, and
-background tasks. This page gives an overview of each. The
-[Imports](/development/interfaces/imports/) and
-[Exports](/development/interfaces/exports/) reference pages provide the full
-type definitions, function signatures, and SDK helpers.
+For Torchsnap, WIT is the single source of truth for the host-gadget boundary.
+The host uses it to generate the Rust code that calls into gadgets. Gadgets use
+it (through the SDK or directly) to generate the code that implements those
+calls and reaches back into the host. Both sides agree on the same types, the
+same function signatures, and the same error variants because they are generated
+from the same file.
 
-## Exports
+This page covers the WIT syntax itself and how bindings are generated from the
+contract. If you are already familiar with WIT and want to jump straight to the
+available APIs, see the [Imports](/development/interfaces/imports/) and
+[Exports](/development/interfaces/exports/) reference pages, which document
+every interface with its WIT definition, SDK helpers, and code examples.
 
-Exports are the interfaces your gadget implements. They are split into four
-areas: **lifecycle** (activation, deactivation, settings changes), **search**
-(catalog entries, query results, execution), **messaging** (custom frontend-to-backend
-RPC), and **tasks** (scheduled background work). All four are mandatory, but not
-every gadget needs all of them. Unused exports simply return empty data or an
-error.
+## Worlds
 
-<Aside type="tip">
-  If you are writing your gadget in [Rust](https://www.rust-lang.org/) (the
-  language all bundled gadgets are written in), the
-  `torchsnap-gadget-sdk` crate handles WIT binding generation and provides
-  ergonomic helpers on top of the raw interfaces. For unused exports, the
-  `impl_noop_messaging!` and `impl_noop_tasks!` macros generate stub
-  implementations automatically.
-</Aside>
+WIT organizes contracts into **worlds**. A world declares which interfaces the
+component imports (calls into) and which it exports (implements). The Torchsnap
+gadget contract defines a single world called `gadget`:
+
+```wit
+world gadget {
+  // Host capabilities the gadget can call
+  import logging;
+  import clipboard;
+  import sql-storage;
+  // ... (14 imports total)
+
+  // Interfaces the gadget must implement
+  export lifecycle;
+  export search;
+  export messaging;
+  export tasks;
+}
+```
+
+The `import` and `export` lines reference named interfaces defined elsewhere in
+the same file. What each interface contains is covered in the sections below.
+
+## Interfaces and functions
+
+An `interface` groups related functions and types. Functions are declared with
+`func`, listing their parameters and return type:
+
+```wit
+interface clipboard {
+  write-text: func(text: string) -> result<_, clipboard-error>;
+}
+```
+
+This declares a `clipboard` interface with one function, `write-text`, that
+takes a string and returns either success or a `clipboard-error`.
+
+## Records
+
+A `record` is a named struct with typed fields:
+
+```wit
+record action {
+  id: action-id,
+  label: string,
+}
+```
+
+## Variants
+
+A `variant` is a tagged union. Each case can optionally carry data:
+
+```wit
+variant entry-icon {
+  hero-icon(string),
+  data-url(string),
+  asset-icon(string),
+  emoji(string),
+}
+```
+
+Each case names the kind of icon and carries the value (a Heroicons name, a
+base64 data URL, a bundled asset path, or an emoji character).
+
+## Enums
+
+An `enum` is a variant where no case carries data:
+
+```wit
+enum post-action { nothing, dismiss, keep-open }
+```
+
+## Resources
+
+A `resource` is an opaque handle with methods. The host creates it, the gadget
+holds a reference and calls methods on it:
+
+```wit
+resource sql-handle {
+  execute: func(sql: string, params: list<sql-value>) -> result<u64, string>;
+  query: func(sql: string, params: list<sql-value>) -> result<list<list<sql-value>>, string>;
+}
+```
+
+The gadget obtains an `sql-handle` by calling `connection()` and then uses
+`execute` and `query` on it. The host manages the underlying database connection
+behind the handle.
+
+## Built-in types
+
+WIT provides a set of generic types used throughout the contract:
+
+- `option<T>`: a value that may be absent (like Rust's `Option` or
+  TypeScript's `T | undefined`)
+- `result<T, E>`: success or failure (like Rust's `Result`)
+- `list<T>`: a variable-length sequence
+- `tuple<T, U>`: a fixed-size pair (or triple, etc.)
+- `string`, `bool`, `u8`, `u16`, `u32`, `u64`, `s32`, `s64`, `f64`: scalar
+  types
+
+## Cross-interface references
+
+The `use` keyword imports types from another interface so they can be shared:
+
+```wit
+interface search {
+  use types.{entry-icon, action-id, action};
+  // ...
+}
+```
+
+This allows `search` to reference `entry-icon`, `action-id`, and `action`
+without redefining them. The `types` interface exists specifically to hold shared
+type definitions used by both imports and exports.
+
+## Generating bindings
+
+The WIT file is language-agnostic. Any language that can compile to
+`wasm32-wasip2` and produce a valid WebAssembly component can implement the
+gadget contract. What differs between languages is how you turn the WIT
+definitions into callable code.
+
+### Rust and the SDK
+
+For Rust, the
+[wit-bindgen](https://github.com/bytecodealliance/wit-bindgen) project provides
+a procedural macro that reads the WIT file at compile time and generates Rust
+traits, structs, and function stubs matching the contract. The
+`torchsnap-gadget-sdk` crate runs this generation once:
+
+```rust
+// Inside torchsnap-gadget-sdk (gadgets/gadget-sdk/src/lib.rs)
+wit_bindgen::generate!({
+    path: "wit",
+    world: "gadget",
+    pub_export_macro: true,
+    default_bindings_module: "::torchsnap_gadget_sdk",
+});
+```
+
+This produces the four guest traits (`LifecycleGuest`, `SearchGuest`,
+`MessagingGuest`, `TasksGuest`), all the WIT record and variant types
+(`CatalogEntry`, `ScoredEntry`, `SearchResponse`, `EntryIcon`, etc.), and the
+host import modules (`clipboard`, `http`, `opener`, and so on). The SDK
+re-exports everything through its prelude, so your gadget code only needs:
+
+```rust
+use torchsnap_gadget_sdk::prelude::*;
+```
+
+On top of the raw generated bindings, the SDK adds convenience helpers like
+typed settings access, SQL row parsing, and structured logging. These are
+covered in the [Imports](/development/interfaces/imports/) reference alongside
+the underlying WIT interfaces.
+
+You do not need to run `wit-bindgen` yourself or reference the WIT file directly
+when using the SDK. The bindings are pre-generated inside the crate.
+
+### Other languages
 
 <Aside type="note">
-  The code examples below use the Rust SDK for readability. The raw WIT
-  interface signatures and type definitions can be found in the
-  [Imports](/development/interfaces/imports/) and
-  [Exports](/development/interfaces/exports/) reference pages.
+  The WIT contract is language-agnostic. If your language has a
+  [Component Model bindings generator](https://component-model.bytecodealliance.org/language-support.html)
+  (Go, C, C++, JavaScript, and others have varying levels of support), you can
+  generate bindings from the WIT file in the SDK repository and implement the
+  gadget world directly. The Rust SDK is a convenience layer, not a requirement.
 </Aside>
 
-### Lifecycle
+## Full WIT contract
 
-The host calls into `lifecycle` to activate and deactivate your gadget and to
-notify it about setting changes. `enable()` runs when the gadget is turned on
-(at startup or when the user toggles it in settings). This is where you set up
-state, open database connections, or validate configuration. If `enable()`
-returns an error, the host disables the gadget and logs the message. `disable()`
-runs on deactivation and is where you clean up. `on_setting_changed()` fires
-whenever a setting in your gadget's namespace changes, giving you the key and
-its new JSON-encoded value.
+The complete interface definition for the `gadget` world. This is the
+source of truth for what gadgets must implement and what the host provides. The
+canonical copy lives at
+[`gadgets/gadget-sdk/wit/torchsnap-gadget.wit`](https://github.com/jakobwesthoff/torchsnap/blob/main/gadgets/gadget-sdk/wit/torchsnap-gadget.wit)
+in the [Torchsnap repository](https://github.com/jakobwesthoff/torchsnap).
 
-```rust
-impl LifecycleGuest for MyGadget {
-    fn enable() -> Result<(), String> {
-        // Initialize state, open connections, validate config
-        Ok(())
-    }
-
-    fn disable() {
-        // Clean up
-    }
-
-    fn on_setting_changed(key: String, value: String) {
-        // React to configuration changes
-    }
-}
-```
-
-<Aside type="note">
-  WASM gadgets execute single-threaded. Your gadget will never handle two host
-  calls concurrently. All calls (lifecycle, search, messaging, tasks) are
-  serialized by the host.
+<Aside type="note" title="Documentation version: torchsnap:gadget@0.1.0">
+  This documentation reflects the `torchsnap:gadget@0.1.0` WIT contract. The
+  pages in this section cannot be automatically generated from the WIT file. While
+  we keep them in sync with each release, the canonical WIT file in the SDK
+  repository always takes precedence if you notice a discrepancy.
 </Aside>
 
-#### Global state
-
-As WASM execution is single-threaded, you can safely use global state without
-synchronization primitives. In Rust, the idiomatic pattern is `thread_local!`
-with `Cell`, 
-`RefCell`, or `OnceCell` for interior mutability:
-
-```rust
-use std::cell::{Cell, RefCell, OnceCell};
-
-thread_local! {
-    static CONFIG_CACHE: OnceCell<Config> = const { OnceCell::new() };
-    static RESULT_LIMIT: Cell<u32> = const { Cell::new(50) };
-}
-```
-
-State initialized in `enable()` is available in all subsequent calls
-(`entries()`, `search()`, `execute()`, `on_setting_changed()`, etc.) for the
-lifetime of the gadget instance.
-
-### Search
-
-Search is the primary interface most gadgets are built around. It controls how
-your gadget provides results to the user and what happens when one is activated.
-The interface exposes three functions:
-
-#### entries()
-
-[`entries()`](/development/interfaces/exports/#search) is called on every keystroke and returns the gadget's full list of
-entries. This is [catalog mode](/development/search/#catalog-mode): the host
-takes the list and handles all fuzzy matching, scoring, and highlighting itself.
-The gadget does not see the query and does not need to filter anything. This is
-the right choice for finite, pre-known datasets like application launchers or
-system commands.
-
-<Aside type="note" title="Performance">
-  `entries()` is called on every keystroke, even though the returned list does
-  not depend on the query. For most gadgets this is not a problem, as the data
-  passes through the WIT bridge quickly. Should large result sets become a
-  bottleneck in the future, a caching mechanism is being considered (for
-  example, allowing the gadget to signal "no change since last call" to avoid
-  re-transferring the full list). The exact approach has not been decided yet.
-</Aside>
-
-#### search()
-
-[`search()`](/development/interfaces/exports/#search) is also called on every keystroke, but receives the raw query string.
-This is [query mode](/development/search/#query-mode): the gadget is responsible
-for matching, scoring, and returning only the results relevant to the current
-query. This is for dynamic data sources like API lookups, database queries, or
-custom matching logic.
-
-#### execute()
-
-[`execute()`](/development/interfaces/exports/#search) runs when the user
-activates a result. It receives the full `ScoredEntry` and the `ActionId` of the
-triggered action, and returns a `PostAction` that controls whether the launcher
-stays open or dismisses.
-
-In query mode, the `ScoredEntry` includes the opaque `data` field exactly as
-your `search()` returned it. This is the primary mechanism for passing context
-from search to execution: serialize whatever your gadget needs (a URL, a
-database key, a computed result) into `data` during `search()`, and deserialize
-it in `execute()` without maintaining external state. The host never inspects
-or modifies the contents.
-
-In catalog mode, `CatalogEntry` has no `data` field. Use the entry's `id` to
-look up context instead.
-
-<Aside type="tip" title="Data in catalog mode">
-  Adding a `data` field to `CatalogEntry` is being considered and may be
-  available in a future version, allowing the same round-trip pattern for
-  catalog entries.
-</Aside>
-
-Both modes can coexist in the same gadget. The [Search](/development/search/)
-page covers catalog mode, query mode, prefix routing, custom UI responses, and
-execution in detail.
-
-<Aside type="tip" title="Keep it fast">
-  Responsiveness is one of the most important aspects of a launcher's user
-  experience. Both `entries()` and `search()` run on every keystroke, so keep
-  them as quick as possible. Avoid costly operations like filesystem scans or
-  network requests inside these functions. Instead, move expensive work into a
-  [scheduled task](/development/manifest/#scheduled-tasks) that updates cached
-  data in the background. The bundled App Launcher gadget, for example, rescans
-  installed applications in a periodic task rather than on every keystroke.
-</Aside>
-
-### Messaging
-
-Gadgets with a [frontend](/development/frontend/) (custom views or settings
-panels) may use `messaging` when their UI needs to communicate with the WASM
-backend beyond what the standard search interface provides. This is optional:
-many gadgets work fine without it.
-
-Messaging lets you define a fully custom set of operations that the frontend can
-trigger on the gadget's backend. Each operation is identified by a `method`
-string, so a single gadget can expose as many different actions as it needs:
-fetching additional data for a custom view, validating configuration in a
-settings panel, clearing a cache, triggering a refresh, or anything else. The
-frontend calls `sendMessage(method, payload)`, which routes to the gadget's
-[`handle_message()`](/development/interfaces/exports/#messaging) export. Both
-the request and response are JSON-encoded strings. This is strictly
-request/response; WASM gadgets cannot stream data to the frontend.
-
-```rust
-impl MessagingGuest for MyGadget {
-    fn handle_message(method: String, payload: String) -> Result<String, String> {
-        match method.as_str() {
-            "validate_api_key" => {
-                let key: String = messaging::parse_payload(&payload)?;
-                let valid = verify_api_key_with_remote(&key)?;
-                messaging::to_response(&valid)
-            }
-            "clear_history" => {
-                clear_history_database()?;
-                messaging::to_response(&true)
-            }
-            _ => Err(format!("unknown method: {method}")),
-        }
-    }
-}
-```
-
-### Tasks
-
-Gadgets that need periodic background work declare
-[`[[tasks]]`](/development/manifest/#scheduled-tasks) entries in their manifest
-with cron expressions. The host invokes the gadget's
-[`run_task()`](/development/interfaces/exports/#tasks) export at the configured
-times, passing the task ID from the manifest. Task errors are logged but do not
-disable the gadget.
-
-A weather gadget, for example, might refresh its forecast cache every hour so
-that search results always show current data without making API calls on every
-keystroke. The manifest declares the task with a cron expression:
-
-```toml title="manifest.toml"
-[[tasks]]
-id = "refresh-forecast"
-schedule = "0 * * * *"
-```
-
-The host calls `run_task()` with the matching task ID at the top of every hour.
-The gadget dispatches on the ID and performs the work:
-
-```rust title="src/lib.rs"
-impl TasksGuest for MyGadget {
-    fn run_task(task_id: String) -> Result<(), String> {
-        match task_id.as_str() {
-            "refresh-forecast" => fetch_and_cache_forecast(),
-            _ => Err(format!("unknown task: {task_id}")),
-        }
-    }
-}
-```
-
-## Imports
-
-Imports are capabilities the host provides. Your gadget calls into them to
-interact with the system, read data, or use host services. Gadgets run in a
-deny-by-default sandbox: most imports require an explicit
-[permission](/development/manifest/#permissions) grant in the gadget's manifest
-before they can be used. A few basic interfaces (logging, settings, assets,
-platform, path resolver) are always available without any declaration.
-
-### Logging
-
-Lets your gadget emit structured log messages with severity levels and optional
-key-value metadata. It also supports timing spans for performance measurement.
-Log output is visible in the [Torchsnap devtools panel](/development/devtools/).
-
-<Aside type="tip">Always available. No manifest permission required.</Aside>
-
-```rust
-log_info!("Fetching results", "source" => "api");
-let span = logging::span_start("api-call", None, &[]);
-// ... do work ...
-logging::span_end(span, &[("status".into(), "ok".into())]);
-```
-
-### Settings
-
-Gives read access to your gadget's configuration values. Keys are scoped to your
-gadget's namespace (the `gadgets.<id>.` prefix is stripped automatically), and
-values are JSON-encoded strings. The SDK provides typed helpers that parse the
-JSON for you.
-
-<Aside type="tip">Always available. No manifest permission required.</Aside>
-
-```rust
-let theme: String = settings::get_or("theme", "dark".into());
-let max_results: u32 = settings::get_or("max-results", 10);
-```
-
-<Aside type="caution" title="TODO: Settings are read-only">
-  Gadgets can currently only read settings, not write them programmatically.
-  Configuration changes must go through the settings UI. A write API is planned.
-</Aside>
-
-### Assets
-
-Lets you read files bundled inside your gadget archive. This is useful for
-shipping static data (word lists, icon sets, templates) alongside your WASM
-binary. Paths are relative to the gadget's root directory.
-
-<Aside type="tip">Always available. No manifest permission required.</Aside>
-
-```rust
-let words = assets::read("data/wordlist.txt")?;
-```
-
-### Platform
-
-Detects the host operating system and CPU architecture at runtime. Useful for
-gadgets that need to adapt behavior or select platform-specific binaries for
-`command` execution.
-
-<Aside type="tip">Always available. No manifest permission required.</Aside>
-
-```rust
-use torchsnap_gadget_sdk::platform::{self, Os};
-
-match platform::current_os() {
-    Os::Macos => { /* macOS-specific path */ }
-    Os::Linux => { /* Linux-specific path */ }
-    _ => { /* fallback */ }
-}
-```
-
-### Path resolver
-
-Resolves [substitution variables](/development/manifest/#substitution-variables)
-like `{"${home}"}`, `{"${gadget-data}"}`, and `{"${gadget-archive}"}` to their
-actual host paths at runtime. Useful when constructing file paths dynamically.
-
-<Aside type="tip">Always available. No manifest permission required.</Aside>
-
-### Clipboard
-
-Provides write-only access to the system clipboard. This is what most gadgets
-use in their `execute()` implementation to copy a result to the clipboard. Read
-access is intentionally not exposed for privacy reasons.
-
-Requires permission [`clipboard = true`](/development/manifest/#boolean-flags) in the manifest.
-
-```rust
-clipboard::write_text("copied text")?;
-```
-
-### Frecency
-
-Lets your gadget query its own frecency ranking data: which items the user
-activates most frequently and recently. The host tracks frecency automatically
-during execution; this import only controls whether your gadget can read back
-that data to drive its own UI (for example, to sort a custom view by usage
-frequency).
-
-Requires permission [`frecency = true`](/development/manifest/#boolean-flags) in the manifest.
-
-### SQL storage
-
-Gives your gadget an isolated SQLite database. The host creates the database
-file and runs migrations declared in the manifest's
-[`[storage.sql]`](/development/manifest/#sql-storage) section before your
-gadget's `enable()` is called. You obtain a connection handle and issue queries
-through it.
-
-Requires a [`[storage.sql]`](/development/manifest/#sql-storage) section in the manifest declaring the migration files.
-
-```rust
-let db = sql_storage::connection();
-db.execute("INSERT INTO history (text, timestamp) VALUES (?, ?)", &[
-    SqlValue::Text(entry.to_string()),
-    SqlValue::Integer(now as i64),
-])?;
-```
-
-### HTTP
-
-Provides a synchronous HTTP client. The interface supports all standard methods,
-custom headers, request bodies, timeouts, and response size limits.
-
-Requires permission [`[permissions.http]`](/development/manifest/#http) in the manifest.
-
-```rust
-let response = http::fetch(&HttpRequest {
-    url: "https://api.example.com/search?q=test".into(),
-    method: HttpMethod::Get,
-    headers: vec![],
-    body: None,
-    timeout_ms: Some(5000),
-    max_body_size: None,
-    insecure_tls: false,
-})?;
-```
-
-### Filesystem
-
-Provides read-only access to files on the host filesystem. You can read file
-contents, check whether a file exists, and query metadata like size and
-modification time.
-
-Requires permission [`[permissions.fs]`](/development/manifest/#filesystem) in the manifest.
-
-### Opener
-
-Opens URLs in the default browser, launches files with their default
-application, or reveals files in the system file manager.
-
-Requires permission [`[permissions.opener]`](/development/manifest/#opener) in the manifest.
-
-### Command
-
-Runs system processes and captures their output. You provide the binary path,
-arguments, optional stdin, and environment variables, and receive the exit code,
-stdout, and stderr. Commands are executed directly without a shell wrapper.
-
-Requires permission [`[[permissions.command]]`](/development/manifest/#command-execution) in the manifest.
-
-### Website metadata
-
-Looks up website titles, descriptions, and favicons through a host-managed cache
-shared across all gadgets. Useful for gadgets like bookmark managers or link
-aggregators that want to display rich metadata for URLs.
-
-Requires permission [`website-metadata = true`](/development/manifest/#boolean-flags) in the manifest.
-
-## Next steps
-
-<CardGrid>
-  <LinkCard
-    title="WIT Primer"
-    description="Learn to read the WIT interface definition language."
-    href="/development/interfaces/wit-primer/"
-  />
-  <LinkCard
-    title="Imports reference"
-    description="Complete reference for all host-provided interfaces."
-    href="/development/interfaces/imports/"
-  />
-  <LinkCard
-    title="Exports reference"
-    description="Complete reference for all guest-implemented interfaces."
-    href="/development/interfaces/exports/"
-  />
-</CardGrid>
