@@ -5,13 +5,209 @@ sidebar:
   order: 6
 ---
 
-TODO: Gadget packaging and distribution.
+import { Aside } from '@astrojs/starlight/components';
 
-- The .torchsnap archive format: zip containing manifest.toml, WASM binary, frontend bundles, assets
-- Gadget directory layout: what goes where inside the archive
-- Distribution roots: system (bundled), dev (debug builds), user (installed)
-- Precedence: system > dev > user, archive shadows directory of same stem
-- Installing: dropping a .torchsnap file into the user gadgets directory
-- Uninstalling: removes archive, state tree, and settings
-- Storage layout: code vs host-managed state separation
-- Restart requirement: GadgetHost slot list is frozen after app setup
+Gadgets are distributed as `.torchsnap` archives. A `.torchsnap` file is a
+standard zip archive containing the gadget's [manifest](/development/manifest/), compiled WASM binary,
+and any additional files the gadget needs (frontend bundles, SQL migrations,
+bundled assets). This page covers what goes into an archive, how to create one,
+and how gadgets are loaded by the host.
+
+## Archive contents
+
+A `.torchsnap` archive must contain a [`manifest.toml`](/development/manifest/) at its root. The host
+reads the manifest first and uses it to locate every other file in the archive.
+Beyond the manifest, the archive contains whichever files the manifest
+references:
+
+| File | Manifest field | Required |
+|---|---|---|
+| WASM binary | `[gadget] wasm` | Yes |
+| Launcher JS bundle | `[frontend] launcher-bundle` | If views are declared |
+| Launcher CSS | `[frontend] launcher-css` | Optional |
+| Settings JS bundle | `[frontend] settings-bundle` | If settings panel is declared |
+| Settings CSS | `[frontend] settings-css` | Optional |
+| SQL migrations | `[storage.sql] migrations` | If SQL storage is used |
+| Bundled assets | (any path used with [`assets::read`](/development/interfaces/imports/#assets)) | Optional |
+
+Any additional files (data files, icon assets, templates) can be included and
+read at runtime through the [`assets`](/development/interfaces/imports/#assets)
+import. The archive can contain arbitrary directory structure.
+
+### Path validation
+
+All file paths in the manifest and in runtime `assets::read` calls are validated
+by the host. The following are rejected:
+
+- Empty strings
+- Absolute paths (leading `/`)
+- Paths containing `..` segments (even if they would resolve inside the root)
+- Backslashes (on all platforms)
+- NUL bytes
+- Windows drive letters (`C:`, `z:`)
+
+This prevents path traversal attacks, which is important since third-party
+gadgets are untrusted code.
+
+## Creating an archive
+
+A `.torchsnap` archive is a zip file with `manifest.toml` at the root. To
+create one manually:
+
+1. Build the WASM binary (targeting `wasm32-wasip2`).
+2. Build the frontend bundles if your gadget has a UI (typically via
+   [Vite](https://vite.dev/)).
+3. Collect the manifest, WASM binary, frontend output, migration files, and
+   any bundled assets into a directory.
+4. Zip the directory contents (not the directory itself) into a file named
+   `<gadget-id>.torchsnap`.
+
+<Aside type="note" title="Compression">
+  Archives must use **Deflate** compression or be stored uncompressed. Most zip
+  tools use Deflate by default, so this is usually not something you need to
+  think about. Other algorithms are not supported at this point and will cause
+  the archive to fail on load. Further algorithms (like zstd) may be added in
+  the future.
+</Aside>
+
+The manifest's `[gadget] wasm` field must match the WASM binary's filename
+inside the archive. Cargo converts hyphens to underscores in crate names, so a
+crate named `my-gadget` produces `my_gadget.wasm`.
+
+<Aside type="caution" title="TODO: Out-of-tree build tooling">
+  Gadget development currently requires working inside the
+  [Torchsnap repository](https://github.com/jakobwesthoff/torchsnap). The
+  in-tree build system provides `just build-gadget <id>` (compiles frontend +
+  WASM) and `just package-gadget <id>` (creates the `.torchsnap` archive). A
+  standalone build workflow with published SDK crates and proper CLI tooling is
+  planned but not yet available.
+</Aside>
+
+### What goes into the archive
+
+The archive should contain only the files the gadget needs at runtime, not the
+source code or build tooling used to produce them. The general rule: if the host
+or the gadget reads the file, it belongs in the archive. If it's only needed
+during compilation, it doesn't.
+
+**Include:**
+- `manifest.toml`
+- The compiled `.wasm` binary (output of `cargo build`)
+- Frontend bundles (the built JS/CSS output from Vite, not the source)
+- SQL migration files
+- Bundled assets (icons, data files, templates)
+
+**Exclude:**
+- Rust source (`src/`, `Cargo.toml`, `Cargo.lock`, `target/`)
+- Frontend source and tooling (`frontend/src/`, `frontend/node_modules/`,
+  `frontend/package.json`, `frontend/vite.config.ts`, etc.)
+- Version control files (`.git/`, `.gitignore`)
+
+The in-tree `just package-gadget` recipe applies this distinction automatically
+using a blacklist. Any new file you add to the gadget directory (migrations,
+assets, data files) is included by default without recipe changes.
+
+## Development
+
+During development, gadgets do not need to be packaged into archives. In debug
+builds, the host automatically discovers every directory under the
+`gadgets/` workspace that contains a `manifest.toml`. This lets you iterate
+without creating a zip file on every change.
+
+The typical development cycle is:
+
+1. Edit your gadget's Rust source or frontend code.
+2. Rebuild with `just build-gadget <gadget-id>`.
+3. Restart the app to pick up the changes.
+
+<Aside type="caution" title="No hot reload">
+  The host loads gadgets at startup and does not watch for file changes. You
+  must restart the app after rebuilding to see your changes. Hot reload is a
+  planned improvement.
+</Aside>
+
+Development gadgets appear with a "Dev" badge in the Gadgets settings panel to
+distinguish them from installed gadgets.
+
+## Installing and uninstalling
+
+<Aside type="caution" title="TODO: Install flow under development">
+  The install and uninstall workflow is functional but not yet finalized. The
+  details below reflect the current implementation and may change as the
+  distribution model matures. This section will be updated once the flow is
+  settled.
+</Aside>
+
+### Installing
+
+To install a gadget, place its `.torchsnap` archive in the user gadgets
+directory. The host validates the archive on install: it checks that the zip is
+valid, that `manifest.toml` is present and parseable, and that all referenced
+paths pass validation. If a gadget with the same ID is already loaded, the
+install is rejected.
+
+<Aside type="caution">
+  The app must be restarted after installing a new gadget. Hot loading of
+  newly installed gadgets is planned for a future version.
+</Aside>
+
+### Uninstalling
+
+Only user-installed gadgets can be uninstalled. Uninstalling removes the archive
+file, the gadget's entire state directory (database, compile cache), and all
+settings keys in the gadget's namespace. System gadgets bundled with the app
+cannot be uninstalled.
+
+<Aside type="caution">
+  The app must be restarted after uninstalling a gadget. Hot unloading is
+  planned for a future version.
+</Aside>
+
+## Storage layout
+
+The host maintains two separate locations for every gadget: one for its
+read-only code and one for its writable runtime data. Understanding the
+distinction matters because your gadget can access both, but for different
+purposes.
+
+### Gadget archive (read-only)
+
+The `.torchsnap` archive (or directory during development) contains everything
+you ship: the compiled WASM binary, frontend bundles, migration files, and
+bundled assets. This is static, read-only data. Your gadget reads from it
+through the [`assets`](/development/interfaces/imports/#assets) import to access
+bundled files like word lists, icon sets, or configuration templates.
+
+### Gadget data (writable)
+
+Each gadget gets its own writable data directory at
+`<app-data>/gadget-home/<gadget-id>/`. This is where runtime state lives: the
+SQLite database (`sql/storage.sqlite3`), the compiled WASM cache, and reserved
+slots for future storage types like blob caches or temporary files. The host
+creates this directory automatically when the gadget is first enabled. Your
+gadget interacts with it primarily through the
+[`sql-storage`](/development/interfaces/imports/#sql-storage) import, but the
+path is also available for use in
+[`filesystem`](/development/interfaces/imports/#filesystem) or
+[`command`](/development/interfaces/imports/#command) permission rules.
+
+<Aside type="note">
+  A dedicated runtime data storage interface (possibly as an extension to the
+  `assets` import) may be added in the future to give gadgets cleaner and easier
+  access to their writable data directory without relying on filesystem
+  permissions and substitution variables.
+</Aside>
+
+### Substitution variables
+
+Two [substitution variables](/development/manifest/#substitution-variables) give
+your gadget access to both locations at runtime:
+
+| Variable | Resolves to |
+|---|---|
+| `${gadget-archive}` | The gadget's read-only code root (archive or directory). |
+| `${gadget-data}` | The gadget's writable data directory. |
+
+This separation keeps code and state cleanly isolated. Uninstalling a gadget
+removes both locations, so no orphaned data is left behind. Reinstalling starts
+fresh with an empty data directory.
