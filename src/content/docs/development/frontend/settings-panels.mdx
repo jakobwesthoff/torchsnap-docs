@@ -5,11 +5,191 @@ sidebar:
   order: 2
 ---
 
-TODO: Gadget settings panel documentation.
+import { Aside } from '@astrojs/starlight/components';
 
-- GadgetSettingsProps component contract
-- useGadgetSetting hook: reactive read/write scoped to gadget namespace
-- Shared UI components: Switch, Slider, Section
-- Registration: [frontend.settings] in manifest
-- Settings reactivity: changes propagate to backend via on-setting-changed
-- Manifest defaults: [settings] section seeds values on first load
+<Aside type="caution" title="Work in progress">
+  The Frontend SDK and its API are still in flux and incomplete. Both the
+  documentation and the SDK itself will see significant changes before a stable
+  1.0.0 release. For the most up-to-date usage patterns, look at how the bundled
+  gadgets ([Calculator](/start/gadgets/calculator/),
+  [Emoji Picker](/start/gadgets/emoji-picker/)) use the SDK in their `frontend/`
+  directories in the
+  [Torchsnap repository](https://github.com/jakobwesthoff/torchsnap).
+</Aside>
+
+Gadgets can provide their own settings panel that appears in the Torchsnap
+settings window. This lets users configure gadget-specific options through a
+native-feeling UI rather than editing files manually. Settings panels use the
+same React and SDK infrastructure as [views](/development/frontend/views/), but
+run in the settings window instead of the launcher.
+
+## Component contract
+
+Settings panel components receive an empty props object. All data access happens
+through hooks:
+
+```ts
+import type { GadgetSettingsProps } from "@torchsnap/gadget-sdk";
+
+export function MySettings(props: GadgetSettingsProps) {
+  // ...
+}
+```
+
+The host wraps your component in a standardized settings header (gadget name,
+description, enable/disable toggle) and a `GadgetContextProvider`. Your
+component renders the gadget-specific configuration controls below that header.
+
+## useGadgetSetting
+
+The primary hook for settings panels. It provides reactive read/write access to
+a single setting key, scoped to the gadget's namespace:
+
+```ts
+import { useGadgetSetting } from "@torchsnap/gadget-sdk/hooks";
+
+const [retentionDays, setRetentionDays] = useGadgetSetting<number>("retentionDays");
+```
+
+| Return | Description |
+|---|---|
+| `value: T` | The current value, JSON-parsed. Available synchronously on first render (the settings store is pre-loaded). |
+| `setValue: (v: T) => Promise<void>` | Write a new value. The change propagates to all windows and to the backend's [`on_setting_changed`](/development/interfaces/exports/#lifecycle) callback. |
+
+Keys are relative to the gadget's namespace. Requesting `"retentionDays"` reads
+the full key `gadgets.<gadget-id>.retentionDays` in the store, but you never
+see the prefix.
+
+<Aside type="note">
+  Setting changes are reactive across windows. If the user has both the launcher
+  and settings open, a change in the settings panel is immediately reflected in
+  the launcher. On the backend side, the host deduplicates rapid writes before
+  dispatching `on_setting_changed`.
+</Aside>
+
+### Default values
+
+Declare defaults in the manifest's `[settings]` section. These are seeded into
+the store on first load and never overwrite existing user values:
+
+```toml title="manifest.toml"
+[settings]
+retentionDays = 30
+historyEnabled = true
+theme = "auto"
+```
+
+Your `useGadgetSetting` calls will return these defaults until the user changes
+them.
+
+## Shared UI components
+
+The SDK provides pre-built UI components that match the host's design language.
+Import them from `@torchsnap/gadget-sdk/components`:
+
+### Switch
+
+A toggle switch for boolean settings:
+
+```tsx
+import { Switch } from "@torchsnap/gadget-sdk/components";
+
+const [enabled, setEnabled] = useGadgetSetting<boolean>("historyEnabled");
+
+<Switch
+  checked={enabled}
+  onChange={setEnabled}
+  aria-label="Enable history"
+/>
+```
+
+### Slider
+
+A numeric range input with optional value formatting:
+
+```tsx
+import { Slider } from "@torchsnap/gadget-sdk/components";
+
+const [days, setDays] = useGadgetSetting<number>("retentionDays");
+
+<Slider
+  value={days}
+  onChange={setDays}
+  min={1}
+  max={90}
+  step={1}
+  formatValue={(v) => `${v} days`}
+/>
+```
+
+### Section
+
+Groups related settings under an optional heading:
+
+```tsx
+import { Section } from "@torchsnap/gadget-sdk/components";
+
+<Section title="History">
+  {/* Setting controls */}
+</Section>
+```
+
+### Entry
+
+A labeled row for a single setting, with an optional description:
+
+```tsx
+import { Entry } from "@torchsnap/gadget-sdk/components";
+
+<Entry label="Retention period" description="How long to keep history entries">
+  <Slider value={days} onChange={setDays} min={1} max={90} />
+</Entry>
+```
+
+### List
+
+A structured list with optional per-item actions:
+
+```tsx
+import { List } from "@torchsnap/gadget-sdk/components";
+
+<List
+  items={[
+    {
+      key: "item-1",
+      primary: "First item",
+      secondary: "Description text",
+      actions: [
+        { label: "Remove", onClick: () => remove("item-1"), variant: "danger" },
+      ],
+    },
+  ]}
+  emptyState={<p>No items yet.</p>}
+/>
+```
+
+## Manifest registration
+
+Register the settings panel in the manifest. The `component` value is the
+JavaScript named export from the settings bundle:
+
+```toml title="manifest.toml"
+[frontend]
+settings-bundle = "frontend/dist/settings.js"
+settings-css = "frontend/dist/settings.css"
+
+[frontend.settings]
+component = "MySettings"
+```
+
+Your settings entry point must export the matching name:
+
+```tsx title="frontend/src/settings.tsx"
+export { Settings as MySettings } from "./settings/Settings";
+```
+
+<Aside type="tip">
+  Gadgets that don't need a settings panel can omit `settings-bundle`,
+  `settings-css`, and `[frontend.settings]` entirely. The host shows a
+  generic enable/disable toggle for gadgets without a custom settings component.
+</Aside>

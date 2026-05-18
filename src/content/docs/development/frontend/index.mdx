@@ -5,12 +5,243 @@ sidebar:
   order: 0
 ---
 
-TODO: Frontend SDK introduction.
+import { Aside } from '@astrojs/starlight/components';
 
-- What the frontend SDK provides: @torchsnap/gadget-sdk package
-- How gadget frontends are loaded: torchsnap-gadget:// protocol, dynamic import
-- Shared React instance: host owns React, gadgets import through SDK shims
-- Package subpath exports: types, hooks, components, keybindings, utils, vite, testing, theme.css
-- Design tokens and theme CSS
-- Manifest frontend configuration: bundles, CSS, views, settings
-- Building with Vite (SDK provides config helpers)
+<Aside type="caution" title="Work in progress">
+  The Frontend SDK and its API are still in flux and incomplete. Both the
+  documentation and the SDK itself will see significant changes before a stable
+  1.0.0 release. For the most up-to-date usage patterns, look at how the bundled
+  gadgets ([Calculator](/start/gadgets/calculator/),
+  [Emoji Picker](/start/gadgets/emoji-picker/)) use the SDK in their `frontend/`
+  directories in the
+  [Torchsnap repository](https://github.com/jakobwesthoff/torchsnap).
+</Aside>
+
+Most gadgets only need a WASM backend: they provide
+[search results](/development/search/) and the host renders them in the
+launcher's built-in result list. A frontend is only required when your gadget
+needs custom UI beyond that: a grid view for emoji, a history panel for the
+calculator, or a settings panel for configuration.
+
+Gadget frontends are built with [React](https://react.dev/) and
+[TypeScript](https://www.typescriptlang.org/) using the `@torchsnap/gadget-sdk`
+package. This page covers how to set up, build, and connect a gadget frontend to
+the host.
+
+<Aside type="caution" title="TODO: Out-of-tree development">
+  Gadget frontend development currently requires working inside the
+  [Torchsnap repository](https://github.com/jakobwesthoff/torchsnap). The SDK
+  package uses a `file:` reference to the monorepo. A published npm package is
+  planned but not yet available.
+</Aside>
+
+## The shared React model
+
+Gadgets do not bundle their own copy of React. The host owns the React instance
+and exposes it to gadgets at runtime through the SDK's shim modules. This keeps
+gadget bundles small and guarantees a single React context across the host and
+all loaded gadgets.
+
+In practice, this means:
+
+- **Do not add React to your `dependencies`.** Only `@types/react` goes in
+  `devDependencies` for type checking.
+- **Import React normally** in your code (`import { useState } from "react"`).
+  The SDK's Vite plugin redirects these imports to shims that resolve to the
+  host's React instance at runtime.
+
+## Project setup
+
+A gadget frontend lives in a `frontend/` directory inside the gadget folder.
+The typical structure is:
+
+```
+my-gadget/
+  manifest.toml
+  src/              # Rust WASM source
+  frontend/
+    package.json
+    vite.config.ts
+    src/
+      launcher.tsx  # Entry point for custom/inline views
+      settings.tsx  # Entry point for settings panel
+    styles/
+      launcher.css
+      settings.css
+```
+
+### Dependencies
+
+Your `package.json` should reference the SDK and build tools as dev
+dependencies. React is provided by the host at runtime and must not be a direct
+dependency:
+
+```json title="frontend/package.json"
+{
+  "devDependencies": {
+    "@torchsnap/gadget-sdk": "file:../../../packages/gadget-sdk",
+    "@vitejs/plugin-react": "^6",
+    "@tailwindcss/vite": "^4",
+    "tailwindcss": "^4",
+    "typescript": "^6",
+    "vite": "^8",
+    "@types/react": "^19"
+  }
+}
+```
+
+### Vite configuration
+
+The `@torchsnap/gadget-sdk/vite` subpath exports the `torchsnap()` Vite plugin.
+This plugin sets up the resolve aliases that redirect React imports to the host's
+runtime shims. It must be listed before the React plugin:
+
+```ts title="frontend/vite.config.ts"
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
+import { torchsnap } from "@torchsnap/gadget-sdk/vite";
+
+const entryName = process.env.PLUGIN_ENTRY ?? "launcher";
+
+export default defineConfig({
+  plugins: [torchsnap(), react(), tailwindcss()],
+  build: {
+    lib: {
+      entry: { [entryName]: `src/${entryName}.tsx` },
+      formats: ["es"],
+    },
+    rolldownOptions: {
+      output: {
+        codeSplitting: false,
+        assetFileNames: `${entryName}.[ext]`,
+      },
+    },
+    cssCodeSplit: false,
+    outDir: "dist",
+    emptyOutDir: entryName === "launcher",
+  },
+});
+```
+
+### Building
+
+The frontend is built twice: once for the launcher entry point (custom and
+inline views) and once for the settings entry point (settings panel). The build
+script in `package.json` runs both:
+
+```json
+{
+  "scripts": {
+    "build": "PLUGIN_ENTRY=launcher vite build && PLUGIN_ENTRY=settings vite build"
+  }
+}
+```
+
+This produces four files in `frontend/dist/`:
+
+| File | Contains |
+|---|---|
+| `launcher.js` | ES module with named exports for each view component |
+| `launcher.css` | Styles for the launcher views |
+| `settings.js` | ES module with the settings panel component |
+| `settings.css` | Styles for the settings panel |
+
+The `just build-gadget` recipe runs `bun install && bun run build` in the
+frontend directory automatically before compiling the WASM binary.
+
+## Connecting to the manifest
+
+The [manifest](/development/manifest/#frontend-bundles) wires the built
+frontend bundles to the host. Reference the output files from the build:
+
+```toml title="manifest.toml"
+[frontend]
+launcher-bundle = "frontend/dist/launcher.js"
+launcher-css = "frontend/dist/launcher.css"
+settings-bundle = "frontend/dist/settings.js"
+settings-css = "frontend/dist/settings.css"
+
+[frontend.views]
+history = "CalculatorView"
+
+[frontend.inline-views]
+result = "CalculatorInline"
+
+[frontend.settings]
+component = "CalculatorSettings"
+```
+
+The `[frontend.views]` and `[frontend.inline-views]` keys are view names
+(referenced by your `search()` return values). The values are the JavaScript
+named exports in the launcher bundle. The `[frontend.settings]` component is the
+named export in the settings bundle.
+
+### Entry points
+
+Each entry point file exports the components the manifest references:
+
+```tsx title="frontend/src/launcher.tsx"
+export { HistoryView as CalculatorView } from "./views/HistoryView";
+export { InlineResult as CalculatorInline } from "./views/InlineResult";
+```
+
+```tsx title="frontend/src/settings.tsx"
+export { Settings as CalculatorSettings } from "./settings/Settings";
+```
+
+## Design tokens and theming
+
+The SDK provides a `theme.css` file with [Tailwind CSS](https://tailwindcss.com/)
+v4 design tokens that match the host's look and feel. Import it in your CSS
+entry point:
+
+```css title="frontend/styles/launcher.css"
+@import "@torchsnap/gadget-sdk/theme.css";
+@import "tailwindcss";
+```
+
+This gives you access to semantic color tokens like `text-text-primary`,
+`bg-surface`, `border-border`, and `text-accent` that automatically adapt to
+light and dark themes. The full token set covers text colors, surface
+backgrounds, borders, accent colors, and selection highlights.
+
+### CSS scoping
+
+The host wraps each gadget's view in a scoped container
+(`<div data-gadget="<gadget-id>">`). Your CSS is automatically wrapped in an
+`@scope` rule targeting that container, so your styles cannot leak into other
+gadgets or the host UI. The host's design tokens still cascade in, which is why
+your Tailwind utilities resolve to the correct theme colors.
+
+## SDK subpath exports
+
+The `@torchsnap/gadget-sdk` package exposes its API through subpath exports.
+Import from the specific path you need:
+
+| Import path | Provides |
+|---|---|
+| `@torchsnap/gadget-sdk` | Type definitions only (`GadgetViewProps`, `InlineViewProps`, `GadgetSettingsProps`, etc.) |
+| `@torchsnap/gadget-sdk/hooks` | React hooks: `useGadgetInfo`, `useGadgetRuntime`, `useLauncher`, `useGadgetSetting`, `useWindowedList` |
+| `@torchsnap/gadget-sdk/components` | Shared UI components: `Switch`, `Slider`, `Section`, `Entry`, `List` |
+| `@torchsnap/gadget-sdk/keybindings` | `useKeyBindings` hook and `LAYER` constants |
+| `@torchsnap/gadget-sdk/utils` | `highlightText` utility |
+| `@torchsnap/gadget-sdk/vite` | `torchsnap()` Vite plugin |
+| `@torchsnap/gadget-sdk/theme.css` | Tailwind v4 design tokens |
+| `@torchsnap/gadget-sdk/testing` | Test utilities |
+
+## How gadgets are loaded
+
+When Torchsnap starts, it reads every gadget's manifest and registers their
+frontend bundles in a component registry. The host serves gadget bundles through
+a custom `torchsnap-gadget://` protocol and loads them as ES module dynamic
+imports. Each named export is mapped to the view or settings component name
+declared in the manifest.
+
+When a gadget's `search()` returns a `CustomUi` or `InlineUi` response, the
+host looks up the view name in the registry and mounts the corresponding React
+component inside a scoped container. Settings panels are mounted in the
+Torchsnap settings window when the user navigates to the gadget's configuration.
+
+All gadget components are wrapped in React `Suspense` boundaries and a
+`GadgetContextProvider` that makes the gadget's hooks available.

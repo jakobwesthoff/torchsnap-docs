@@ -5,13 +5,129 @@ sidebar:
   order: 3
 ---
 
-TODO: Gadget messaging documentation.
+import { Aside } from '@astrojs/starlight/components';
 
-- What messaging is: custom RPC parallel to the search pipeline
-- Frontend side: sendMessage from useGadgetRuntime, typed request/response
-- Backend side: MessagingGuest trait, handle-message(method, payload)
-- JSON encoding: both directions are JSON-encoded strings
-- SDK helpers: messaging::parse_payload, messaging::to_response
-- impl_noop_messaging! for gadgets that don't need RPC
-- useGadgetStream hook: streaming updates (native gadgets only)
-- WASM limitation: request/response only, no streaming
+<Aside type="caution" title="Work in progress">
+  The Frontend SDK and its API are still in flux and incomplete. Both the
+  documentation and the SDK itself will see significant changes before a stable
+  1.0.0 release. For the most up-to-date usage patterns, look at how the bundled
+  gadgets ([Calculator](/start/gadgets/calculator/),
+  [Emoji Picker](/start/gadgets/emoji-picker/)) use the SDK in their `frontend/`
+  directories in the
+  [Torchsnap repository](https://github.com/jakobwesthoff/torchsnap).
+</Aside>
+
+Messaging is a custom RPC channel between a gadget's React frontend and its
+WASM backend. It runs parallel to the [search](/development/search/) pipeline
+and lets you call arbitrary backend logic from your views or settings panels:
+fetching data from a database, validating input, triggering actions, or anything
+else your UI needs that the search interface doesn't cover.
+
+Messaging is optional. Gadgets that only use the standard search result list
+don't need it.
+
+## Frontend side
+
+The `sendMessage` function is available through the `useGadgetRuntime` hook:
+
+```ts
+import { useGadgetRuntime } from "@torchsnap/gadget-sdk/hooks";
+
+const { sendMessage } = useGadgetRuntime();
+```
+
+The function signature is:
+
+```ts
+type GadgetSendMessage = <TPayload = unknown, TResult = unknown>(
+  method: string,
+  payload: TPayload,
+) => Promise<TResult>;
+```
+
+`method` identifies which operation to invoke on the backend. `payload` is
+serialized as JSON and passed to the backend's `handle_message`. The returned
+promise resolves with the parsed JSON response, or rejects with an error string.
+
+### Example
+
+```tsx
+const { sendMessage } = useGadgetRuntime();
+
+async function clearHistory() {
+  await sendMessage("clear_history", {});
+}
+
+async function loadPage(page: number) {
+  const data = await sendMessage<{ page: number }, HistoryPage>(
+    "get_history",
+    { page },
+  );
+  setEntries(data.entries);
+}
+```
+
+## Backend side
+
+On the Rust side, `sendMessage` calls route to the gadget's
+[`handle_message`](/development/interfaces/exports/#messaging) export. The
+`method` string maps directly to the first argument. Both the payload and
+response are JSON-encoded strings:
+
+```rust
+impl MessagingGuest for MyGadget {
+    fn handle_message(method: String, payload: String) -> Result<String, String> {
+        match method.as_str() {
+            "get_history" => {
+                let req: PageRequest = messaging::parse_payload(&payload)?;
+                let page = load_history_page(req.page)?;
+                messaging::to_response(&page)
+            }
+            "clear_history" => {
+                clear_history_db()?;
+                messaging::to_response(&true)
+            }
+            _ => Err(format!("unknown method: {method}")),
+        }
+    }
+}
+```
+
+The SDK helpers `messaging::parse_payload` and `messaging::to_response` handle
+JSON serialization. See the
+[Exports reference](/development/interfaces/exports/#messaging) for the full
+WIT contract and SDK trait details.
+
+## JSON encoding
+
+Both directions are JSON-encoded strings at the WIT boundary:
+
+- **Frontend → Backend**: `payload` is serialized to JSON by the host before
+  reaching `handle_message`.
+- **Backend → Frontend**: the `Ok(String)` return value is parsed as JSON by the
+  host before resolving the `sendMessage` promise.
+
+The TypeScript generic parameters on `sendMessage<TPayload, TResult>` provide
+type safety on the frontend side, but the actual wire format is always a JSON
+string. Make sure your Rust types and TypeScript types agree on the shape.
+
+<Aside type="note">
+  Returning `Err(String)` from `handle_message` rejects the `sendMessage`
+  promise with the error string. Use this for validation errors, missing data,
+  or any other expected failure the frontend should handle.
+</Aside>
+
+## WASM streaming limitation
+
+<Aside type="caution">
+  Messaging is strictly request/response for WASM gadgets. Each `sendMessage`
+  call produces exactly one response or error. There is no streaming support.
+  If your view needs live-updating data, use repeated `sendMessage` calls
+  (polling) or structure your data so the search pipeline delivers updates
+  through `ViewResponse.data` on each keystroke.
+</Aside>
+
+The `sendMessage` type signature includes an optional `onMessage` callback
+parameter, but this is only functional for native (non-WASM) gadgets. For WASM
+gadgets, the callback is never invoked. This limitation exists because the WIT
+`messaging::handle-message` interface is one-shot by design.

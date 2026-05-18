@@ -5,14 +5,225 @@ sidebar:
   order: 1
 ---
 
-TODO: Gadget view component documentation.
+import { Aside } from '@astrojs/starlight/components';
 
-- Custom views: replace the result list entirely (prefix mode only)
-- Inline views: rendered above the result list (any mode, one per search)
-- Component contract: GadgetViewProps and InlineViewProps
-- Props: results, data, query, matchedPrefix, selected
-- Context: useGadgetInfo, useGadgetRuntime, useLauncher
-- Launcher actions: goBack, dismiss, onExecute, onFooterChange, setDisplayQuery
-- Footer management: onFooterChange for custom action bars
-- Registration: [frontend.views] and [frontend.inline-views] in manifest
-- View name resolution: how the host maps view names to React components
+<Aside type="caution" title="Work in progress">
+  The Frontend SDK and its API are still in flux and incomplete. Both the
+  documentation and the SDK itself will see significant changes before a stable
+  1.0.0 release. For the most up-to-date usage patterns, look at how the bundled
+  gadgets ([Calculator](/start/gadgets/calculator/),
+  [Emoji Picker](/start/gadgets/emoji-picker/)) use the SDK in their `frontend/`
+  directories in the
+  [Torchsnap repository](https://github.com/jakobwesthoff/torchsnap).
+</Aside>
+
+Views are React components that render inside the launcher when a gadget's
+[`search()`](/development/interfaces/exports/#search) returns a `CustomUi` or
+`InlineUi` response. There are two kinds:
+
+- **Custom views** replace the entire result list with a gadget-controlled UI.
+  The [Emoji Picker](/start/gadgets/emoji-picker/)'s grid and the
+  [Calculator](/start/gadgets/calculator/)'s history panel are custom views.
+  Only available when the gadget is the exclusive responder (via
+  [prefix routing](/development/search/#prefix-routing)).
+- **Inline views** render above the result list while the results remain visible
+  below. Only one gadget can claim the inline slot per search. The Calculator's
+  live result display is an inline view.
+
+## Component contract
+
+### GadgetViewProps
+
+Custom view components receive:
+
+```ts
+interface GadgetViewProps {
+  results: SourcedEntry[];
+  data?: unknown;
+  query: string;
+  matchedPrefix: string;
+}
+```
+
+| Prop | Description |
+|---|---|
+| `results` | The `ScoredEntry` list from the `ViewResponse`. Empty for full-takeover views. |
+| `data` | The opaque JSON payload from `ViewResponse.data`, already parsed. |
+| `query` | The current search query with the matched prefix already stripped. |
+| `matchedPrefix` | The prefix that triggered this view (e.g. `"="` for the calculator). |
+
+### InlineViewProps
+
+Inline view components receive:
+
+```ts
+interface InlineViewProps {
+  data: unknown;
+  query: string;
+  matchedPrefix: string;
+  selected: boolean;
+}
+```
+
+| Prop | Description |
+|---|---|
+| `data` | The opaque JSON payload from `ViewResponse.data`, already parsed. |
+| `query` | The current search query with the matched prefix already stripped. |
+| `matchedPrefix` | The prefix that triggered this view. |
+| `selected` | Whether the inline view currently has focus (index 0 in the result list). |
+
+## Context hooks
+
+Views access gadget state and launcher actions through hooks imported from
+`@torchsnap/gadget-sdk/hooks`. These hooks work because the host wraps every
+view in a `GadgetContextProvider`.
+
+### useGadgetInfo
+
+```ts
+function useGadgetInfo(): { id: string; enabled: boolean }
+```
+
+Returns the gadget's ID and enabled state. The ID matches the `[gadget] id` from
+the manifest.
+
+### useGadgetRuntime
+
+```ts
+function useGadgetRuntime(): {
+  sendMessage: GadgetSendMessage;
+  logger: Logger;
+}
+```
+
+Provides the [messaging](/development/frontend/messaging/) interface for
+frontend-to-backend RPC and a logger for the gadget.
+
+### useLauncher
+
+```ts
+function useLauncher(): LauncherActions
+```
+
+Returns actions for controlling the launcher from within a view:
+
+| Action | Description |
+|---|---|
+| `goBack()` | Return to the normal result list, dismissing the custom view. |
+| `dismiss()` | Close the launcher entirely. |
+| `onExecute(entryId, actionId)` | Trigger execution of a result entry with the given action. |
+| `onFooterChange(state)` | Replace the launcher's footer bar with custom content. |
+| `setDisplayQuery(query)` | Update the search bar text without triggering a new search. |
+| `mouseActiveRef` | A ref indicating whether the mouse is currently active (for keyboard/mouse interaction management). |
+
+<Aside type="note">
+  `useLauncher()` is only available in launcher views (custom and inline). It
+  throws if called from a settings panel.
+</Aside>
+
+### Footer management
+
+By default, the launcher shows an action bar in the footer derived from the
+selected entry's actions. A custom view can override this by calling
+`onFooterChange(state)` with a `FooterState` object describing the custom
+footer content. The host resets the footer when the view unmounts.
+
+For inline views, the custom footer is only shown when the inline slot is
+selected (focused at index 0).
+
+## Utilities
+
+### highlightText
+
+```ts
+import { highlightText } from "@torchsnap/gadget-sdk/utils";
+
+function highlightText(
+  text: string,
+  positions: readonly number[],
+  highlightClassName?: string,
+): ReactNode[]
+```
+
+Renders text with highlighted characters at the given UTF-16 code-unit offsets.
+The `positions` array matches the `titlePositions` and `subtitlePositions` fields
+on `SourcedEntry`. The default highlight class is `"text-accent font-semibold"`.
+
+Useful when your custom view renders its own result list and needs to show the
+same match highlighting as the host's built-in list.
+
+### useWindowedList
+
+```ts
+import { useWindowedList } from "@torchsnap/gadget-sdk/hooks";
+
+function useWindowedList(params: {
+  selectedIndex: number;
+  setSelectedIndex: (index: number) => void;
+  resultCount: number;
+  pageSize: number;
+}): {
+  windowStart: number;
+  wheelRef: (el: HTMLDivElement | null) => void;
+}
+```
+
+Manages a virtual scrolling window for custom views that render long lists.
+Returns the current window start index and a ref callback for the scroll
+container that handles mouse wheel events.
+
+## Keybindings
+
+Custom views can register keyboard shortcuts that override or extend the
+launcher's default bindings while the view is mounted:
+
+```ts
+import { useKeyBindings, LAYER } from "@torchsnap/gadget-sdk/keybindings";
+
+useKeyBindings([
+  {
+    id: "clear-history",
+    layer: LAYER.COMPONENT,
+    handler: () => clearHistory(),
+    keybindings: [{ combo: { modifiers: ["Meta"], key: "Backspace" } }],
+  },
+]);
+```
+
+Bindings are organized in layers. Higher layers take precedence:
+
+| Layer | Constant | Used by |
+|---|---|---|
+| 0 | `LAYER.APP` | Host application defaults |
+| 1 | `LAYER.VIEW` | View-level bindings |
+| 2 | `LAYER.COMPONENT` | Component-level overrides |
+
+Set `active: false` on a binding to make it consume the key event without
+executing the handler (useful for suppressing a host binding without replacing
+it).
+
+## Manifest registration
+
+Views are registered in the manifest's `[frontend]` section. The keys are view
+names your `search()` uses in `ViewResponse.view`. The values are JavaScript
+named exports from the launcher bundle:
+
+```toml title="manifest.toml"
+[frontend]
+launcher-bundle = "frontend/dist/launcher.js"
+
+[frontend.views]
+grid = "EmojiGrid"
+detail = "EmojiDetail"
+
+[frontend.inline-views]
+result = "CalculatorInline"
+```
+
+Your launcher entry point must export the matching names:
+
+```tsx title="frontend/src/launcher.tsx"
+export { EmojiGrid } from "./views/EmojiGrid";
+export { EmojiDetail } from "./views/EmojiDetail";
+export { CalculatorInline } from "./views/CalculatorInline";
+```
