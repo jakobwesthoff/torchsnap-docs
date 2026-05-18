@@ -339,6 +339,10 @@ button[data-close-modal] {
 /* Restore list markers stripped by Tailwind's preflight.
    Starlight relies on browser defaults, but Tailwind resets
    list-style to none globally. */
+.sl-markdown-content a:not(:where(.not-content *)):hover {
+  text-decoration: underline;
+}
+
 .sl-markdown-content :is(ul, ol):not(:where(.not-content *)) {
   padding-inline-start: 1.5em;
 }
