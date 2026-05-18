@@ -5,10 +5,142 @@ sidebar:
   order: 7
 ---
 
-TODO: Devtools panel documentation.
+import { Aside } from '@astrojs/starlight/components';
+import Screenshot from '../../../components/Screenshot.astro';
+import devtoolsDark from '../../../assets/screenshots/devtools-console-dark.png';
+import devtoolsLight from '../../../assets/screenshots/devtools-console-light.png';
+import devtoolsFlatDark from '../../../assets/screenshots/devtools-flat-dark.png';
+import devtoolsFlatLight from '../../../assets/screenshots/devtools-flat-light.png';
 
-- How to open the devtools panel
-- Viewing gadget log output and structured metadata
-- Timing spans and performance profiling
-- Inspecting settings values
-- Debugging search results and execution
+The devtools panel is a dedicated window for inspecting gadget behavior at
+runtime. It shows log output, timing spans, and structured metadata from all
+active gadgets in a single stream. Use it to verify that your gadget initializes
+correctly, produces the right search results, and performs within acceptable
+response times.
+
+<Aside type="caution" title="TODO: Settings toggle">
+  The devtools panel is currently always available in both debug and release
+  builds. In a future version, it will be gated behind a setting that must be
+  enabled explicitly. The exact location of this toggle has not been decided yet.
+</Aside>
+
+## Opening the panel
+
+There are two ways to open the devtools:
+
+- **System tray**: right-click the Torchsnap tray icon and select
+  "Developer Tools...".
+- **Launcher search**: type "devtools" (or "debug", "console", "logs") into the
+  search bar and activate the "Developer Tools" entry.
+
+There is currently no keyboard shortcut for opening the panel.
+
+## Console
+
+<Screenshot dark={devtoolsDark} light={devtoolsLight} alt="Devtools console showing span entries from the calculator gadget with timing badges and expanded metadata" />
+
+The console is the main view of the devtools panel. It streams every log entry
+from all active gadgets and the host in real time. Each entry shows:
+
+- **Timestamp** at millisecond precision.
+- **Level badge**: TRACE, DEBUG, INFO, WARN, or ERROR, color-coded by severity.
+- **Source**: the gadget ID (with a colored dot per gadget) or "host" for
+  host-internal messages.
+- **Message**: the log text.
+- **Metadata**: entries with key-value pairs can be expanded inline to show the
+  structured data. Click any row to expand.
+
+A copy button appears on hover to copy the full entry as formatted text.
+
+<Aside type="note">
+  The host retains the last 10,000 log entries in a ring buffer. When you open
+  the devtools panel, it loads the available history immediately. Older entries
+  beyond the buffer limit are discarded to keep memory usage bounded.
+</Aside>
+
+### Filtering
+
+The toolbar provides several ways to narrow down the log stream:
+
+- **Level filters**: toggle individual levels (Error, Warn, Info, Debug, Trace)
+  on or off. Only matching entries are shown.
+- **Span filter**: toggle visibility of timing span entries separately.
+- **Source dropdown**: filter by gadget or show only host messages. Each gadget
+  is listed with its colored dot for quick identification.
+- **Text search**: filter entries by message content. Focused with `Cmd+F`.
+- **Clear**: discard all entries in the view (`Cmd+K`).
+
+The entry count in the toolbar shows how many entries match the current filters
+out of the total.
+
+All filtering happens client-side. The backend always captures and streams the
+full log output regardless of what filters are active.
+
+## Timing spans
+
+Calls to [`logging::span_start`](/development/interfaces/imports/#logging) and
+[`logging::span_end`](/development/interfaces/imports/#logging) appear in the
+console alongside regular log messages. Span entries are marked with start
+and end badges and show:
+
+- The span **name**.
+- A **duration badge** for completed spans, color-coded by elapsed time (green
+  for fast, amber for moderate, red for slow).
+- A "running" indicator for spans that have started but not yet ended.
+
+### Flat view vs tree view
+
+The console supports two display modes, toggled from the toolbar:
+
+**Flat view** shows every entry in chronological order, one after another,
+regardless of span nesting. This is useful for seeing the exact sequence of
+events as they happened across all gadgets.
+
+**Tree view** groups log messages under the span that was active when they were
+emitted. Spans appear as collapsible nodes with their child messages nested
+underneath. Nested spans (created with a `parent` handle) form a hierarchy. This
+makes it easy to see which log messages belong to a specific operation, like
+tracing all the steps inside a gadget's `enable()` call or a single search
+cycle. Spans without a parent appear at the root level.
+
+<Screenshot dark={devtoolsFlatDark} light={devtoolsFlatLight} alt="Devtools console in flat view showing the calculator gadget's initialization spans in chronological order" />
+
+<Aside type="note">
+  Tree view groups entries by span hierarchy, not by gadget. When multiple
+  gadgets run concurrently, their entries are separated visually as long as each
+  gadget wraps its work in spans. Entries without a span from different gadgets
+  can interleave at the root level. Use the source filter to isolate a single
+  gadget when debugging concurrent behavior.
+</Aside>
+
+## Tips for gadget debugging
+
+Use the SDK logging macros (`log_info!`, `log_debug!`, etc.) liberally during
+development. Structured metadata is particularly useful for inspecting values
+without adding temporary debug output:
+
+```rust
+log_info!("Search completed",
+    "query" => &query,
+    "results" => results.len(),
+    "elapsed_ms" => elapsed.as_millis(),
+);
+```
+
+Wrap expensive operations in timing spans to identify performance bottlenecks:
+
+```rust
+let span = logging::span_start("api-fetch", None, &[]);
+let response = http::fetch(&request)?;
+logging::span_end(span, &[("status".into(), response.status.to_string())]);
+```
+
+{/* TODO: Update once stdout/stderr redirection is implemented */}
+
+<Aside type="caution" title="TODO: println! output">
+  `println!` and `eprintln!` from WASM gadgets do not appear in the devtools
+  console. They go to the host process's terminal output instead. Redirecting
+  this output to the devtools is planned. Until then, always use the
+  [`logging`](/development/interfaces/imports/#logging) import for output that
+  should be visible in the devtools.
+</Aside>
