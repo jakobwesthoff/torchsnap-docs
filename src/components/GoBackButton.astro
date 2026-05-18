@@ -1,0 +1,19 @@
+---
+// A "Go back" button that navigates to the previous page via history.back().
+// Falls back to "/" if there is no browser history (e.g., the user opened
+// the page directly in a new tab).
+import { LinkButton } from "@astrojs/starlight/components";
+---
+
+<LinkButton href="/" variant="primary" icon="left-arrow" iconPlacement="start" data-go-back>
+  Go back
+</LinkButton>
+
+<script>
+  document.querySelector("[data-go-back]")?.addEventListener("click", (e) => {
+    if (history.length > 1) {
+      e.preventDefault();
+      history.back();
+    }
+  });
+</script>

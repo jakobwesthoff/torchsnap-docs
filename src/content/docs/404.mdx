@@ -1,0 +1,34 @@
+---
+title: Page not found
+template: splash
+editUrl: false
+pagefind: false
+sidebar:
+  hidden: true
+hero:
+  title: ""
+  tagline: ""
+---
+
+import { Image } from "astro:assets";
+import { LinkButton } from "@astrojs/starlight/components";
+import GoBackButton from "../../components/GoBackButton.astro";
+import mascot from "../../assets/mascot-see-no-evil-1024.png";
+
+<div class="not-content flex flex-col items-center justify-center gap-6 px-4 py-16 text-center">
+  <Image
+    src={mascot}
+    alt="Torchsnap mascot covering its eyes"
+    width={256}
+    densities={[1, 2]}
+    loading="eager"
+    decoding="async"
+    class="w-64 h-auto"
+  />
+  <h1 class="text-[length:var(--sl-text-4xl)] font-bold leading-[var(--sl-line-height-headings)] text-[color:var(--sl-color-white)]">{"Page not found"}</h1>
+  <p class="text-[length:var(--sl-text-lg)] text-[color:var(--sl-color-gray-2)] max-w-md">{"Looks like this page didn’t want to be seen. It may have been moved or no longer exists."}</p>
+  <div class="flex flex-row gap-3 justify-center">
+    <GoBackButton />
+    <LinkButton href="/" variant="secondary">{"Home page"}</LinkButton>
+  </div>
+</div>
