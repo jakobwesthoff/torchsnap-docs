@@ -2,26 +2,488 @@
 title: Exports
 description: Complete reference for all guest-implemented interfaces.
 sidebar:
-  order: 3
+  order: 1
 ---
 
-TODO: Exhaustive reference for every guest export.
+import { Aside } from '@astrojs/starlight/components';
 
-One section per interface with WIT contract, SDK macros, and usage examples:
+This page is the exhaustive reference for every guest-implemented interface in
+the `gadget` world. Each section shows the WIT contract, the SDK trait, and
+usage examples. For background on the WIT notation, see the
+[WIT Primer](/development/interfaces/).
 
-- lifecycle: enable, disable, on-setting-changed
-  - enable() returns result: err(string) disables the gadget
-  - disable() cleanup
-  - on-setting-changed(key, value): relative keys, JSON-encoded values
-  - CoalescingDispatcher deduplication (brief, from gadget perspective)
-- search: entries, search, execute (brief + cross-link to Search concept page)
-  - catalog-entry, scored-entry, search-response, post-action
-  - Full WIT contract with notes on each variant
-- messaging: handle-message(method, payload) (brief + cross-link to Frontend/Messaging)
-  - JSON-encoded strings, request/response only for WASM
-  - SDK helpers: parse\_payload, to\_response
-  - impl\_noop\_messaging! for gadgets without RPC
-- tasks: run-task(task-id)
-  - Cron scheduling via manifest [[tasks]] entries
-  - Best-effort: errors logged, gadget not disabled
-  - impl\_noop\_tasks! for gadgets without scheduled work
+Every gadget must implement all four export interfaces. The SDK provides
+`impl_noop_messaging!` and `impl_noop_tasks!` macros for interfaces your gadget
+doesn't use. Registration is handled by the `define_gadget!` macro:
+
+```rust
+use torchsnap_gadget_sdk::prelude::*;
+
+struct MyGadget;
+define_gadget!(MyGadget);
+```
+
+`define_gadget!` generates the WASM component FFI shims that wire every guest
+export to the trait implementations on your struct.
+
+<Aside type="note">
+  WASM gadgets execute single-threaded. Your gadget will never handle two host
+  calls concurrently. All calls (lifecycle, search, messaging, tasks) are
+  serialized by the host.
+</Aside>
+
+### Global state
+
+As WASM execution is single-threaded, you can safely use global state without
+synchronization primitives. In Rust, the idiomatic pattern is `thread_local!`
+with `Cell`, `RefCell`, or `OnceCell` for interior mutability:
+
+```rust
+use std::cell::{Cell, RefCell, OnceCell};
+
+thread_local! {
+    static CONFIG_CACHE: OnceCell<Config> = const { OnceCell::new() };
+    static RESULT_LIMIT: Cell<u32> = const { Cell::new(50) };
+}
+```
+
+State initialized in `enable()` is available in all subsequent calls
+(`entries()`, `search()`, `execute()`, `on_setting_changed()`, etc.) for the
+lifetime of the gadget instance.
+
+## Lifecycle
+
+Controls gadget activation, deactivation, and settings change notifications. The
+host calls into this interface to manage the gadget's lifetime.
+
+### WIT contract
+
+```wit
+interface lifecycle {
+  enable: func() -> result<_, string>;
+  disable: func();
+  on-setting-changed: func(key: string, value: string);
+}
+```
+
+### SDK trait
+
+```rust
+pub trait LifecycleGuest {
+    fn enable() -> Result<(), String>;
+    fn disable();
+    fn on_setting_changed(key: String, value: String);
+}
+```
+
+### enable()
+
+Runs when the gadget is activated: at startup if the gadget is enabled in
+settings, or when the user toggles it on. This is where you initialize state,
+open database connections, seed caches from settings, or run first-launch data
+imports.
+
+Returning `Err(string)` signals a fatal initialization failure. The host
+disables the gadget immediately and logs the error message. No further calls are
+dispatched after a failed enable. Only return an error for conditions that
+genuinely prevent the gadget from functioning. Non-fatal issues (like a network
+fetch failing on first launch) should be handled internally.
+
+```rust
+fn enable() -> Result<(), String> {
+    let db = sql_storage::connection();
+    let count = load_initial_data(&db)?;
+    log_info!("Gadget enabled", "entries" => count);
+    Ok(())
+}
+```
+
+### disable()
+
+Runs when the gadget is deactivated. Clean up any state here. The host drops the
+WASM instance after this call, so all memory is reclaimed regardless, but
+explicit cleanup lets you flush pending work or log a clean shutdown.
+
+```rust
+fn disable() {
+    log_info!("Gadget disabled");
+}
+```
+
+### on_setting_changed()
+
+Fires whenever a setting in the gadget's namespace changes. `key` is relative
+(the `gadgets.<id>.` prefix is stripped), and `value` is a JSON-encoded string
+using the same encoding as
+[`settings::get`](/development/interfaces/imports/#settings).
+
+```rust
+fn on_setting_changed(key: String, value: String) {
+    match key.as_str() {
+        "max-results" => {
+            if let Ok(limit) = serde_json::from_str::<u32>(&value) {
+                RESULT_LIMIT.with(|c| c.set(limit));
+            }
+        }
+        _ => {}
+    }
+}
+```
+
+<Aside type="note">
+  The host deduplicates rapid writes to the same key before this callback fires.
+  If the user moves a slider quickly and generates many writes, the gadget
+  receives one call with the final value, not one per intermediate step. Your
+  implementation can unconditionally apply the value it receives without
+  debouncing.
+</Aside>
+
+## Search
+
+Controls how the gadget provides results and what happens when the user
+activates one. This is the most substantial export interface. The
+[Search](/development/search/) page covers the concepts (catalog mode, query
+mode, prefix routing, custom views) in detail. This section is the type and
+function reference.
+
+### WIT contract
+
+```wit
+interface search {
+  use types.{entry-icon, action-id, action};
+
+  record catalog-entry {
+    id: string,
+    title: string,
+    subtitle: option<string>,
+    icon: option<entry-icon>,
+    keywords: list<string>,
+    actions: list<action>,
+  }
+
+  record scored-entry {
+    id: string,
+    title: string,
+    subtitle: option<string>,
+    icon: option<entry-icon>,
+    score: u32,
+    title-highlight-positions: list<u32>,
+    subtitle-highlight-positions: list<u32>,
+    actions: list<action>,
+    data: option<string>,
+  }
+
+  record view-response {
+    view: string,
+    data: option<string>,
+    results: list<scored-entry>,
+  }
+
+  variant search-response {
+    nothing,
+    results(list<scored-entry>),
+    custom-ui(view-response),
+    inline-ui(view-response),
+  }
+
+  enum post-action { nothing, dismiss, keep-open }
+
+  entries: func() -> list<catalog-entry>;
+  search: func(query: string, matched-prefix: option<string>) -> search-response;
+  execute: func(entry: scored-entry, action-id: action-id) -> result<post-action, string>;
+}
+```
+
+### SDK trait
+
+```rust
+pub trait SearchGuest {
+    fn entries() -> Vec<CatalogEntry>;
+    fn search(query: String, matched_prefix: Option<String>) -> SearchResponse;
+    fn execute(entry: ScoredEntry, action_id: ActionId) -> Result<PostAction, String>;
+}
+```
+
+### Types
+
+#### CatalogEntry
+
+Returned by `entries()` for host-side fuzzy matching
+([catalog mode](/development/search/#catalog-mode)).
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | `String` | Unique identifier within this gadget. Passed back in `execute()`. |
+| `title` | `String` | Primary display text. The host highlights match positions. |
+| `subtitle` | `Option<String>` | Secondary text shown below the title. |
+| `icon` | `Option<EntryIcon>` | Result icon. See [shared types](/development/interfaces/imports/#shared-types). |
+| `keywords` | `Vec<String>` | Additional match targets. Keyword matches score the entry but are not highlighted in the title. |
+| `actions` | `Vec<Action>` | The first action is the primary one (<kbd>Enter</kbd>). Well-known `ActionId` variants receive default keybindings from the host. |
+
+#### ScoredEntry
+
+Returned by `search()` for gadget-scored results
+([query mode](/development/search/#query-mode)). Also passed back into
+`execute()`.
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | `String` | Unique identifier within this gadget. |
+| `title` | `String` | Primary display text. |
+| `subtitle` | `Option<String>` | Secondary text. |
+| `icon` | `Option<EntryIcon>` | Result icon. |
+| `score` | `u32` | Sort ranking. Higher scores appear first. |
+| `title_highlight_positions` | `Vec<u32>` | UTF-16 code unit offsets to highlight in the title. |
+| `subtitle_highlight_positions` | `Vec<u32>` | UTF-16 code unit offsets to highlight in the subtitle. |
+| `actions` | `Vec<Action>` | Same semantics as `CatalogEntry`. |
+| `data` | `Option<String>` | Opaque gadget-private payload, round-tripped through `execute()`. |
+
+#### SearchResponse
+
+| Variant | Description |
+|---|---|
+| `Nothing` | The gadget has nothing for this query. |
+| `Results(Vec<ScoredEntry>)` | Standard scored results merged into the host's result list. |
+| `CustomUi(ViewResponse)` | Replaces the entire result list with the named [frontend view](/development/frontend/views/). |
+| `InlineUi(ViewResponse)` | Rendered above the result list. Only one gadget can claim the inline slot per search. |
+
+Returning `Results(vec![])` is semantically different from `Nothing`: it tells
+the host the gadget participated and explicitly produced zero results, which
+clears any stale entries from a previous keystroke.
+
+#### ViewResponse
+
+| Field | Type | Description |
+|---|---|---|
+| `view` | `String` | Name of the frontend component registered in the [manifest](/development/manifest/#custom-views). |
+| `data` | `Option<String>` | JSON-encoded payload forwarded to the React component. |
+| `results` | `Vec<ScoredEntry>` | Entries to display in the result list alongside the view. Empty for full-takeover custom UIs. |
+
+#### PostAction
+
+Returned by `execute()` to control launcher behavior after activation.
+
+| Variant | Effect |
+|---|---|
+| `Nothing` | Leave the launcher open, state unchanged. |
+| `Dismiss` | Close the launcher and reset its state. |
+| `KeepOpen` | Leave the launcher open. Functionally identical to `Nothing`; exists as a semantic signal for multi-select workflows. |
+
+### entries()
+
+Returns the gadget's catalog entries for host-side fuzzy matching. Called on
+every keystroke. Gadgets that only use query mode return an empty `Vec`.
+
+```rust
+fn entries() -> Vec<CatalogEntry> {
+    QUOTES.with(|q| {
+        q.borrow()
+            .iter()
+            .map(|quote| quote.to_catalog_entry())
+            .collect()
+    })
+}
+```
+
+<Aside type="note" title="Performance">
+  `entries()` is called on every keystroke, even though the returned list does
+  not depend on the query. For most gadgets this is not a problem, as the data
+  passes through the WIT bridge quickly. Should large result sets become a
+  bottleneck in the future, a caching mechanism is being considered (for
+  example, allowing the gadget to signal "no change since last call" to avoid
+  re-transferring the full list). The exact approach has not been decided yet.
+</Aside>
+
+### search()
+
+Called on every keystroke with the raw query string. `matched_prefix` is
+`Some("=")` (or whichever prefix) when the gadget claimed a
+[prefix](/development/search/#prefix-routing) and the user's input starts with
+it. `None` otherwise. Gadgets that only use catalog mode return
+`SearchResponse::Nothing`.
+
+```rust
+fn search(query: String, matched_prefix: Option<String>) -> SearchResponse {
+    let input = match &matched_prefix {
+        Some(prefix) => &query[prefix.len()..],
+        None => &query,
+    };
+
+    match evaluate(input) {
+        Some(result) => SearchResponse::Results(vec![result.to_scored_entry()]),
+        None => SearchResponse::Nothing,
+    }
+}
+```
+
+<Aside type="tip" title="Keep it fast">
+  Responsiveness is one of the most important aspects of a launcher's user
+  experience. Both `entries()` and `search()` run on every keystroke, so keep
+  them as quick as possible. Avoid costly operations like filesystem scans or
+  network requests inside these functions. Instead, move expensive work into a
+  [scheduled task](/development/manifest/#scheduled-tasks) that updates cached
+  data in the background. The bundled App Launcher gadget, for example, rescans
+  installed applications in a periodic task rather than on every keystroke.
+</Aside>
+
+### execute()
+
+Runs when the user activates a result. Receives the full `ScoredEntry`
+(including the `data` field) and the `ActionId` of the triggered action.
+
+The `data` field is the primary mechanism for passing context from `search()` to
+`execute()`. Use the SDK's `data::encode` and `data::decode` helpers:
+
+```rust
+// In search(): attach context
+let entry = ScoredEntry {
+    data: Some(data::encode(&url)?),
+    // ...
+};
+
+// In execute(): retrieve context
+fn execute(entry: ScoredEntry, action_id: ActionId) -> Result<PostAction, String> {
+    match action_id {
+        ActionId::Open => {
+            let url: String = data::decode(
+                entry.data.as_deref().ok_or("missing data")?,
+            )?;
+            opener::open_url(&url)?;
+            Ok(PostAction::Dismiss)
+        }
+        ActionId::Copy => {
+            clipboard::write_text(&entry.title)?;
+            Ok(PostAction::Dismiss)
+        }
+        _ => Ok(PostAction::Nothing),
+    }
+}
+```
+
+<Aside type="tip" title="Data in catalog mode">
+  `CatalogEntry` has no `data` field. When the host converts a catalog entry to
+  a `ScoredEntry` for execution, `data` is always `None`. Use the entry's `id`
+  to look up context instead. Adding a `data` field to catalog entries is being
+  considered for a future version.
+</Aside>
+
+## Messaging
+
+Custom RPC between the gadget's [frontend](/development/frontend/) (React views
+and settings panels) and its WASM backend. This interface is optional: only
+gadgets with a frontend that needs to communicate with the backend implement it.
+
+### WIT contract
+
+```wit
+interface messaging {
+  handle-message: func(method: string, payload: string) -> result<string, string>;
+}
+```
+
+### SDK trait
+
+```rust
+pub trait MessagingGuest {
+    fn handle_message(method: String, payload: String) -> Result<String, String>;
+}
+```
+
+Both `payload` and the `Ok` return value are JSON-encoded strings. `Err(String)`
+propagates to the frontend as an error on the `sendMessage` promise.
+
+The `method` parameter lets a single gadget expose multiple operations. The
+standard pattern is a match on method names:
+
+```rust
+fn handle_message(method: String, payload: String) -> Result<String, String> {
+    match method.as_str() {
+        "get_history" => {
+            let entries = load_history_from_db()?;
+            messaging::to_response(&entries)
+        }
+        "clear_history" => {
+            clear_history_db()?;
+            messaging::to_response(&true)
+        }
+        other => Err(format!("unknown method: {other}")),
+    }
+}
+```
+
+### SDK helpers
+
+| Function | Description |
+|---|---|
+| `messaging::parse_payload<T>(payload)` | Parse the JSON-encoded payload into `T`. |
+| `messaging::to_response<T>(value)` | Serialize `value` as a JSON-encoded response string. |
+
+### Noop macro
+
+Gadgets that don't use messaging provide a stub with `impl_noop_messaging!`:
+
+```rust
+impl_noop_messaging!(MyGadget);
+```
+
+This generates an implementation that returns
+`Err("gadget does not handle messages: <method>")` for any call.
+
+<Aside type="note">
+  Messaging is strictly request/response. WASM gadgets cannot stream data to the
+  frontend. Each `sendMessage` call from the frontend produces exactly one
+  response or error.
+</Aside>
+
+## Tasks
+
+Scheduled background work via cron expressions declared in the
+[manifest](/development/manifest/#scheduled-tasks). The host invokes the
+gadget's `run_task` export at the configured times. Task errors are logged but
+do not disable the gadget.
+
+### WIT contract
+
+```wit
+interface tasks {
+  run-task: func(task-id: string) -> result<_, string>;
+}
+```
+
+### SDK trait
+
+```rust
+pub trait TasksGuest {
+    fn run_task(task_id: String) -> Result<(), String>;
+}
+```
+
+`task_id` matches the `id` field from the manifest's `[[tasks]]` entry. The
+standard pattern dispatches on the ID:
+
+```rust
+fn run_task(task_id: String) -> Result<(), String> {
+    match task_id.as_str() {
+        "refresh-data" => fetch_and_update_cache(),
+        "prune-history" => delete_entries_older_than_days(30),
+        _ => Err(format!("unknown task: {task_id}")),
+    }
+}
+```
+
+<Aside type="note">
+  Tasks are best-effort. Returning `Err(String)` logs the error but does not
+  disable the gadget or prevent future task invocations. The host only spawns a
+  scheduler loop when the manifest declares at least one `[[tasks]]` entry.
+</Aside>
+
+### Noop macro
+
+Gadgets that don't use scheduled tasks provide a stub with `impl_noop_tasks!`:
+
+```rust
+impl_noop_tasks!(MyGadget);
+```
+
+This generates an implementation that returns
+`Err("gadget declares no scheduled tasks: <task_id>")` for any call.
