@@ -31,6 +31,9 @@ export default defineConfig({
   site: "https://docs.torchsnap.app",
   vite: {
     plugins: [tailwindcss()],
+    server: {
+      allowedHosts: [".trycloudflare.com"],
+    },
   },
   integrations: [
     icon(),
