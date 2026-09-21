@@ -15,17 +15,18 @@ copies text to the clipboard when activated.
 
 <Steps>
 
-1. **[Rust](https://www.rust-lang.org/tools/install) toolchain** with the
-   `wasm32-wasip2` target:
+1. **[Rust](https://www.rust-lang.org/tools/install) via rustup.** The
+   Torchsnap repository pins its Rust release in `rust-toolchain.toml`.
+   rustup installs that release and the `wasm32-wasip2` target the first
+   time you run `cargo` in the repository. A `cargo` installed any other way
+   ignores the pin.
 
-   ```sh
-   rustup target add wasm32-wasip2
-   ```
-
-2. **[Bun](https://bun.sh/)** (only needed if your gadget has a frontend).
+2. **[Bun](https://bun.sh/) 1.4 or newer** (only needed if your gadget has a
+   frontend).
 
 3. **The [Torchsnap repository](https://github.com/jakobwesthoff/torchsnap)**
-   cloned locally.
+   cloned locally. Run `just doctor` to check the remaining tools, then
+   `just install` once.
 
 </Steps>
 
