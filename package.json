@@ -11,14 +11,14 @@
     "build:favicon": "bun run tools/build-favicon.ts"
   },
   "dependencies": {
-    "@astrojs/starlight": "^0.39.2",
+    "@astrojs/starlight": "^0.39.3",
     "@iconify-json/heroicons": "^1.2.3",
-    "@iconify-json/simple-icons": "^1.2.82",
-    "@tailwindcss/vite": "^4.3.0",
-    "astro": "^6.3.1",
-    "astro-icon": "^1.1.5",
+    "@iconify-json/simple-icons": "^1.2.97",
+    "@tailwindcss/vite": "^4.3.3",
+    "astro": "~6.3.8",
+    "astro-icon": "^1.2.0",
     "sharp": "^0.34.5",
     "starlight-llms-txt": "^0.10.0",
-    "tailwindcss": "^4.3.0"
+    "tailwindcss": "^4.3.3"
   }
 }
