@@ -14,6 +14,7 @@
     "@astrojs/starlight": "^0.42.2",
     "@iconify-json/heroicons": "^1.2.3",
     "@iconify-json/simple-icons": "^1.2.97",
+    "@shikijs/themes": "4.0.2",
     "@tailwindcss/vite": "^4.3.3",
     "astro": "^7.3.3",
     "astro-icon": "^1.2.0",
