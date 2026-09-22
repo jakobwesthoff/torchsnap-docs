@@ -29,6 +29,11 @@ latte.colors["titleBar.activeForeground"] = "#ea580c";
 
 export default defineConfig({
   site: "https://docs.torchsnap.app",
+  // Lossless whitespace compression. The JSX-style default drops the
+  // whitespace between adjacent elements, and starlight-llms-txt turns
+  // the rendered HTML into text, so link titles and image pairs in the
+  // llms*.txt files would run into the following word.
+  compressHTML: true,
   vite: {
     plugins: [tailwindcss()],
     server: {
