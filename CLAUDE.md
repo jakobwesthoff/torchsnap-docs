@@ -1,15 +1,11 @@
 # torchsnap-docs: project rules
 
-- Writing, page workflow, screenshots, components, commit rules:
-  `docs/documentation-writing-howto.md`. Follow it for every page change.
-- Facts come from the torchsnap repo (`../torchsnap`); verify every
+- Follow `docs/documentation-writing-howto.md` for every page change
+  (writing conventions, page workflow, screenshots, components, commit
+  rules).
+- Facts come from the torchsnap repo (`../torchsnap`). Verify every
   behavioral claim against its source before writing it.
-- Pages: `src/content/docs/` (MDX). Sidebar: `astro.config.mjs`.
-- Build: `bun run build`; the expected warnings are listed in `README.md`,
-  "Expected build warnings". Any other warning or error needs fixing.
-- ADRs: `docs/adr/`, created with `EDITOR=true adrs new "<title>"`,
-  Status set to `Accepted` when decided.
-- Open work: `todos/`.
-- Deployment: GitHub Pages via `.github/workflows/deploy.yml`, only while
-  the repository is public (ADR 0002). Go-live settings: `README.md`,
-  "Releasing".
+- `bun run build` must finish with only the warnings listed in
+  `README.md`, "Expected build warnings". Fix any other warning or error.
+- ADRs: `EDITOR=true adrs new "<title>"` in `docs/adr/`, Status set to
+  `Accepted` when decided.
