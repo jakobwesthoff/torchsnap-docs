@@ -1,0 +1,62 @@
+name: Deploy
+
+# Builds the site on every push and pull request, and publishes it to
+# GitHub Pages from `main`. The Pages site serves https://docs.torchsnap.app
+# through the custom domain set in the repository's Pages settings.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One Pages deployment at a time. A running deployment finishes rather
+# than being cancelled, so the live site never ends up half-published.
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: oven-sh/setup-bun@v2
+
+      # `bun run build` starts the Astro CLI, which runs on Node. Astro 7
+      # needs Node 22.12 or newer.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+
+      - run: bun install --frozen-lockfile
+
+      - run: bun run build
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    # Pages cannot serve a private repository on GitHub Free. While the
+    # repository is private, the build above still runs as CI and the
+    # deployment is skipped.
+    if: >-
+      ${{ !github.event.repository.private
+          && github.ref == 'refs/heads/main'
+          && github.event_name != 'pull_request' }}
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
