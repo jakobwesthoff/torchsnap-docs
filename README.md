@@ -85,13 +85,27 @@ Regenerate them only when the mascot changes, and commit the results.
 
 ## Releasing
 
-1. Start from a clean checkout of the commit you want to release.
-2. Run `bun install --frozen-lockfile`.
-3. Run `bun run build` and confirm it finishes with only the expected
-   warnings listed above.
-4. Run `bun run preview` and check the pages you changed, the search
-   dialog, and the light and dark themes in a browser.
-5. Publish the contents of `dist/`.
+The site is published with GitHub Pages under the custom domain
+`docs.torchsnap.app` (ADR 0002 in `docs/adr/`). The workflow `.github/workflows/deploy.yml` builds
+the site on every push to `main`, on pull requests, and on manual runs.
+It deploys `dist/` only from `main`, and only while the repository is
+public. A private repository gets the build as CI and no deployment.
 
-Publishing is not set up yet. No hosting target is configured and the
-repository has no deploy workflow.
+Before pushing a change to `main`:
+
+1. Run `bun install --frozen-lockfile`.
+2. Run `bun run build` and confirm it finishes with only the expected
+   warnings listed above.
+3. Run `bun run preview` and check the pages you changed, the search
+   dialog, and the light and dark themes in a browser.
+
+The first deployment needs these repository settings:
+
+1. The repository is public.
+2. Under Settings, Pages, the source is "GitHub Actions" and the custom
+   domain is `docs.torchsnap.app`. The workflow does not write a `CNAME`
+   file, and GitHub ignores one for workflow deployments.
+3. `docs.torchsnap.app` has a CNAME record pointing to
+   `jakobwesthoff.github.io`.
+4. Once GitHub offers it, "Enforce HTTPS" is on. GitHub says this can
+   take up to 24 hours after the domain is set.
