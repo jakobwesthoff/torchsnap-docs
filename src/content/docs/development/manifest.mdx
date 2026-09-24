@@ -349,10 +349,10 @@ invocation shapes of the same binary.
 |---|---|---|---|
 | `binary` | string | yes | Executable name or absolute path. |
 | `argv` | list of constraints | no | Per-position argument rules. Default: `[]` (zero arguments only). |
-| `cwd` | string | no | Working directory. Supports [substitution variables](#substitution-variables). |
-| `timeout-ms-max` | integer | no | Hard ceiling on per-call timeout in milliseconds. |
-| `max-output-bytes` | integer | no | Hard ceiling on captured stdout + stderr bytes. |
-| `max-stdin-bytes` | integer | no | Hard ceiling on stdin input bytes. |
+| `cwd` | string | no | Working directory. Supports [substitution variables](#substitution-variables). Not enforced yet, see below. |
+| `timeout-ms-max` | integer | no | Hard ceiling on per-call timeout in milliseconds. Not enforced yet, see below. |
+| `max-output-bytes` | integer | no | Hard ceiling on captured stdout + stderr bytes. Not enforced yet, see below. |
+| `max-stdin-bytes` | integer | no | Hard ceiling on stdin input bytes. Not enforced yet, see below. |
 
 Each element in `argv` constrains one argument position using an inline table
 with a `kind` field:
@@ -390,6 +390,18 @@ walks the argument list position by position against the compiled constraints.
 Without a trailing `rest` constraint, the argument count must match exactly.
 With `rest`, the prefix must match and every trailing argument must satisfy the
 inner constraint. If no rule matches, the call is rejected before the process is spawned.
+
+{/* TODO: Remove once the per-rule limits are enforced. Tracked in
+    ../torchsnap/todos/gadget-host/caps/01kwg1ajrvfsmxyjmm7bvcs04b-command-per-rule-limits-unenforced.md */}
+
+<Aside type="caution" title="TODO: Per-rule limits are not enforced">
+  The host accepts `cwd`, `timeout-ms-max`, `max-output-bytes`, and
+  `max-stdin-bytes` in a rule but does not apply them yet, and the install
+  review does not show them. A call runs in the working directory your gadget
+  passes, or in its own scratch directory. The host's own limits apply to
+  every call: a timeout of 10 seconds by default and at most 60, and 4 MiB of
+  captured stdout and of stderr by default and at most 64 MiB each.
+</Aside>
 
 <Aside type="note">
   No shell wrapping is applied. Arguments go directly to the process via
