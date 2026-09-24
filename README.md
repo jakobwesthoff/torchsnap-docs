@@ -11,7 +11,8 @@ with [Starlight](https://starlight.astro.build) on Astro.
 - Node.js 22.12 or newer. `bun run` starts the Astro CLI, and the CLI
   runs on Node. Astro 7 requires at least that version.
 - [oxipng](https://github.com/shssoichiro/oxipng) on your `PATH` if you
-  regenerate the favicons. `build:favicon` fails without it.
+  regenerate the favicons or the social card. `build:favicon` and
+  `build:og` fail without it.
 
 ## Development
 
@@ -82,6 +83,12 @@ The build prints warnings that need no action:
 `apple-touch-icon.png`, `icon-192.png`, and `icon-192-maskable.png` in
 `public/` from `src/assets/mascot-reading-1024.png`. The files are committed.
 Regenerate them only when the mascot changes, and commit the results.
+
+`bun run build:og` generates `public/og.png`, the social card that link
+previews show for every page. It is committed as well. The card is the
+docs variant of the torchsnap.app card from `web/tools/build-og.tsx` in
+the torchsnap-web repository. A design change to one card usually
+needs the same change in the other.
 
 ## Releasing
 

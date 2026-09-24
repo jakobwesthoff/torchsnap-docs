@@ -80,6 +80,26 @@ export default defineConfig({
             href: "/manifest.json",
           },
         },
+        // Starlight emits og:title, og:description and a
+        // summary_large_image twitter:card, but no image. Every page
+        // shares the one card from tools/build-og.tsx; the per-page
+        // title and description already appear as text in link previews.
+        ...[
+          ["og:image", "https://docs.torchsnap.app/og.png"],
+          ["og:image:width", "1200"],
+          ["og:image:height", "630"],
+          ["og:image:alt", "Snappy the owl reading a book above the Torchsnap Docs wordmark"],
+        ].map(([property, content]) => ({
+          tag: "meta",
+          attrs: { property, content },
+        })),
+        ...[
+          ["twitter:image", "https://docs.torchsnap.app/og.png"],
+          ["twitter:image:alt", "Snappy the owl reading a book above the Torchsnap Docs wordmark"],
+        ].map(([name, content]) => ({
+          tag: "meta",
+          attrs: { name, content },
+        })),
       ],
       social: [],
       components: {

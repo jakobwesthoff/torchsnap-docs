@@ -8,7 +8,8 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "build:favicon": "bun run tools/build-favicon.ts"
+    "build:favicon": "bun run tools/build-favicon.ts",
+    "build:og": "bun run tools/build-og.tsx"
   },
   "dependencies": {
     "@astrojs/starlight": "^0.42.2",
@@ -21,5 +22,9 @@
     "sharp": "^0.35.4",
     "starlight-llms-txt": "^0.12.0",
     "tailwindcss": "^4.3.3"
+  },
+  "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "satori": "^0.33.4"
   }
 }
