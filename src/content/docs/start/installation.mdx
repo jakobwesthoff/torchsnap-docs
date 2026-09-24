@@ -38,6 +38,57 @@ open an app downloaded from the internet. Click **Open**. The dialog also
 says that Apple checked Torchsnap for malicious software: every release is
 notarized by Apple before it is published.
 
+Torchsnap then opens its welcome window. It sets up three things:
+
+- the keyboard shortcut that opens the launcher,
+- whether Torchsnap starts when you log in,
+- whether Torchsnap checks for updates automatically (see
+  [Updating](#updating)).
+
+Every choice comes prefilled, so you can go straight through. The welcome
+window stays open until its last page, which asks you to press your
+shortcut. Pressing it, or clicking **Open the launcher** there, finishes the
+welcome and opens the launcher. To see the welcome window again, click
+**Show Welcome** in Settings → General.
+
+### Updating
+
+Torchsnap updates itself. Choose **Check for Updates...** in the Torchsnap
+menu in the menu bar, or click **Check for Updates** in Settings → General.
+When a newer version exists, a window shows what changed in every version
+since yours:
+
+- **Install and Restart** downloads the update, replaces the installed
+  Torchsnap and restarts it. Before installing, Torchsnap checks
+  that the update is signed by the Torchsnap project. If your user account
+  cannot replace the app, macOS asks for an administrator password.
+- **Later** closes the window. Until you install or skip the update, the
+  menu item reads **Update to *version*...** and opens the window again.
+- **Skip This Version** stops automatic checks from offering this version.
+  A newer one is offered again, and a check you start yourself still shows
+  it.
+
+Restarting also applies gadget installs and uninstalls that wait for a
+restart; the update window says how many.
+
+With automatic checks on, Torchsnap looks for a new version once a day. The
+check downloads `https://torchsnap.app/updates/latest.json`; the request
+carries your IP address and nothing else about you. Turn automatic checks
+on or off in the welcome window or in Settings → General. Prereleases are
+never offered as updates.
+
+Torchsnap cannot update itself while it runs straight from the mounted DMG,
+or from a temporary location macOS uses for apps opened where they were
+downloaded. The update window then asks you to move Torchsnap to the
+Applications folder, or to download the new version.
+
+:::note[Updating from 0.11 or earlier]
+Versions before 0.12.0 cannot update themselves. Download
+[Torchsnap.dmg](https://github.com/jakobwesthoff/torchsnap/releases/latest/download/Torchsnap.dmg)
+once more and replace Torchsnap in your Applications folder. From then on,
+Torchsnap updates itself.
+:::
+
 ### Homebrew
 
 A Homebrew tap is not yet available. Use the DMG download for now. Once
