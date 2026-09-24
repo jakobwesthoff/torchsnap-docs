@@ -99,7 +99,7 @@ All fields except `prefixes` are required.
 | `id` | string | Unique identifier. Lowercase alphanumeric, hyphens, and dots only. No leading or trailing hyphen. Should follow reverse-domain convention (see below). |
 | `name` | string | Human-readable display name shown in settings. |
 | `description` | string | Short description shown in the settings header. |
-| `version` | string | Version string (e.g. `"0.1.0"`). |
+| `version` | string | [Semantic version](https://semver.org/) (e.g. `"0.1.0"`). Shown after the gadget's name in settings. |
 | `wasm` | string | Path to the compiled WASM binary, relative to the gadget root. |
 | `icon` | string | Either `"heroicons:<name>"` for a [Heroicons](https://heroicons.com/) icon, or a relative path to a bundled asset (e.g. `"assets/icon.svg"`). |
 | `prefixes` | list of strings | Search prefixes for exclusive [query routing](/development/search/#prefix-routing). Default: `[]`. |
@@ -107,6 +107,13 @@ All fields except `prefixes` are required.
 The `wasm` field must match the compiled binary filename. Cargo converts
 hyphens to underscores in crate names, so a crate named `my-gadget` produces
 `my_gadget.wasm`.
+
+When a user installs a new version of your gadget over an installed one, the
+host compares the two `version` values to tell an update from an older
+version, and warns the user before an older one replaces a newer one. A value
+that isn't a valid semantic version still installs, but the review can't say
+which of the two is newer. See
+[Publishing an update](/development/packaging/#publishing-an-update).
 
 {/* TODO: Update the ID naming convention once existing bundled gadgets are
     migrated to the reverse-domain format. */}
@@ -162,17 +169,19 @@ to changes via
 Gadgets run in a sandbox. By default, no host capability is accessible. The
 `[permissions]` section is where you declare what your gadget needs. If a
 capability is not listed here, the host blocks it at runtime with a permission
-error. This design lets users audit what a gadget can do before installing it.
+error.
 
-{/* TODO: Update once the permission UI is implemented in the settings panel
-    and the install flow. */}
+Users see these declarations before they install your gadget, and later on
+your gadget's entry in Settings → Gadgets. Both list every permission, grouped
+by what it touches: programs, network, files, links, the clipboard, and the
+gadget's own data. [Installing Gadgets](/start/gadgets/installing/#review-what-the-gadget-can-do)
+shows the groups from the user's side.
 
-<Aside type="note" title="Planned: permission transparency in the UI">
-  In the future, a gadget's declared permissions will be shown automatically in
-  its settings page (alongside the enable toggle) so users can review them at
-  any time. When installing a third-party gadget, the install flow will present
-  the requested permissions in a structured, readable format so the user can
-  make an informed decision before granting access.
+<Aside type="tip" title="What users see as broad access">
+  Three declarations earn a **Broad access** label in the review: any
+  [command rule](#command-execution), [`open-path`](#opener), and the HTTP
+  origin [`"*"`](#http). Declare them only when your gadget needs them, and
+  prefer narrow rules, so users can tell at a glance what your gadget reaches.
 </Aside>
 
 ### How enforcement works
@@ -499,6 +508,10 @@ CREATE INDEX idx_history_created_at ON history(created_at DESC);
   already applied on each user's machine, so changing an existing entry has no
   effect and removing or reordering entries will corrupt the database schema.
   There is no rollback mechanism.
+
+  A version of your gadget that lists fewer migrations than the installed one
+  can't open the installed version's database, so Torchsnap refuses to install
+  it over that version.
 </Aside>
 
 The database file is stored in the gadget's host-managed state directory,

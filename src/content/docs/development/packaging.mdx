@@ -136,6 +136,11 @@ distinguish them from installed gadgets.
 Users install a gadget by opening its `.torchsnap` archive in Torchsnap: from
 **Settings → Gadgets** (file picker or drop zone), by double-clicking it in
 Finder, or by passing its path to the Torchsnap binary on the command line.
+On macOS, Torchsnap registers `.torchsnap` as its own document type
+(`app.torchsnap.gadget`, MIME type `application/vnd.torchsnap.gadget+zip`), so
+Finder opens these files with Torchsnap and shows them with a gadget icon.
+[Installing Gadgets](/start/gadgets/installing/) describes the process from
+the user's side.
 
 Torchsnap copies the archive before looking at it and rejects archives larger
 than 16 MiB. It then checks that the zip is valid, that `manifest.toml` is
@@ -158,13 +163,40 @@ The gadget ID decides what an install does:
   newly installed gadgets is planned for a future version.
 </Aside>
 
+### Publishing an update
+
+Users update your gadget by installing the archive of the new version over
+the installed one. To make that work smoothly:
+
+- Keep the gadget [`id`](/development/manifest/#gadget-identity). A different
+  ID installs as a separate gadget with empty data and settings.
+- Raise the [`version`](/development/manifest/#gadget-identity). The review
+  compares the two versions and warns the user when the archive is older than
+  the installed one.
+- Only add [migrations](/development/manifest/#how-migrations-work) at the end
+  of the list. An archive with fewer migrations than the installed version is
+  refused.
+
+The review marks permissions the installed version didn't have as **New** and
+permissions you dropped as **Removed**, with a summary line above the list.
+Users see every added permission before they confirm the update.
+
+### Testing the install flow
+
+In a debug build, the host loads every gadget under the `gadgets/` workspace as
+a development gadget. Installing an archive with the same ID is rejected, so
+the review of your own gadget only shows the rejection. To try the install
+flow, run a release build (`just build --release`), which does not load
+development gadgets, and open your archive there.
+
 ### Uninstalling
 
-Only user-installed gadgets can be uninstalled. Uninstalling removes the archive
-file right away. The gadget's entire state directory (database, compile cache)
-and all settings keys in the gadget's namespace are deleted the next time
-Torchsnap starts, before any gadget loads. Until then the gadget shows
-**Removed on restart**. Gadgets bundled with the app cannot be uninstalled.
+Only user-installed gadgets can be uninstalled. The gadget keeps running until
+the next start and shows **Removed on restart** until then, and the user can
+undo the uninstall. When Torchsnap starts again, it deletes the archive, the
+gadget's entire state directory (database, compile cache), and all settings
+keys in the gadget's namespace, before any gadget loads. Gadgets bundled with
+the app cannot be uninstalled.
 
 <Aside type="caution">
   The app must be restarted after uninstalling a gadget. Hot unloading is
