@@ -131,20 +131,27 @@ distinguish them from installed gadgets.
 
 ## Installing and uninstalling
 
-<Aside type="caution" title="TODO: Install flow under development">
-  The install and uninstall workflow is functional but not yet finalized. The
-  details below reflect the current implementation and may change as the
-  distribution model matures. This section will be updated once the flow is
-  settled.
-</Aside>
-
 ### Installing
 
-To install a gadget, place its `.torchsnap` archive in the user gadgets
-directory. The host validates the archive on install: it checks that the zip is
-valid, that `manifest.toml` is present and parseable, and that all referenced
-paths pass validation. If a gadget with the same ID is already loaded, the
-install is rejected.
+Users install a gadget by opening its `.torchsnap` archive in Torchsnap: from
+**Settings → Gadgets** (file picker or drop zone), by double-clicking it in
+Finder, or by passing its path to the Torchsnap binary on the command line.
+
+Torchsnap copies the archive before looking at it and rejects archives larger
+than 16 MiB. It then checks that the zip is valid, that `manifest.toml` is
+present and parseable, and that all referenced paths pass validation. The user
+sees a review of the gadget and every permission its manifest declares, and
+nothing is installed until they confirm it.
+
+The gadget ID decides what an install does:
+
+- An ID that belongs to a built-in, system or development gadget is rejected.
+- An ID that is already installed as a user gadget is replaced. The gadget's
+  data and settings are kept, and the review shows which permissions are new.
+- A replace is rejected when the installed gadget was placed as a directory
+  under the user gadgets directory, or when the new archive declares fewer
+  entries in `[storage.sql] migrations` than the installed one, since the new
+  version could not open the installed version's database.
 
 <Aside type="caution">
   The app must be restarted after installing a new gadget. Hot loading of
@@ -154,8 +161,9 @@ install is rejected.
 ### Uninstalling
 
 Only user-installed gadgets can be uninstalled. Uninstalling removes the archive
-file, the gadget's entire state directory (database, compile cache), and all
-settings keys in the gadget's namespace. System gadgets bundled with the app
+file right away. The gadget's entire state directory (database, compile cache)
+and all settings keys in the gadget's namespace are deleted the next time
+Torchsnap starts, before any gadget loads. System gadgets bundled with the app
 cannot be uninstalled.
 
 <Aside type="caution">

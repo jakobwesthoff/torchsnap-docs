@@ -86,13 +86,32 @@ frecency tracking entirely or clear the history at any time.
 
 <Screenshot dark={settingsGadgetsDark} light={settingsGadgetsLight} alt="Settings window showing the Gadgets section" maxWidth="600px" />
 
-The Gadgets section lets you manage which gadgets are active.
+The Gadgets section lets you manage which gadgets are active. Each gadget
+lists what it is allowed to do, such as running commands, connecting to
+websites or reading files. Broad permissions come first and are highlighted.
 
 | Action | Description |
 |---|---|
 | **Enable / disable** | Toggle individual gadgets on or off using the switch next to each one. |
-| **Install** | Drop a `.torchsnap` file onto the drop zone or click **Choose a file...**. Installed gadgets require an app restart to take effect. |
-| **Uninstall** | Remove user-installed gadgets. Built-in and system gadgets ship with the app and cannot be removed. |
+| **Install** | Drop `.torchsnap` files onto the drop zone, click **Choose a file...**, or double-click a `.torchsnap` file in Finder. Every install shows a review first. Installed gadgets take effect after a restart. |
+| **Replace** | Installing another version of an installed gadget replaces it and keeps its data and settings. |
+| **Uninstall** | Remove user-installed gadgets. The gadget's data and settings are deleted the next time Torchsnap starts. Built-in and system gadgets ship with the app and cannot be removed. |
+
+### Install review
+
+Before a gadget is installed, Torchsnap opens this section and shows:
+
+- the gadget's name, version, id and description, and the file it comes from;
+- the site the file was downloaded from, when macOS recorded it for the download;
+- every permission the gadget asks for.
+
+When the file replaces an installed version, the review also names both
+versions, warns when the new one is older, marks permissions the installed
+version did not have as **New**, and lists the ones it no longer asks for.
+
+Several files are reviewed one after another. Confirmed installs collect in one
+list with a single **Restart now** button. Each entry has an **Undo** button
+until you dismiss the list or restart Torchsnap.
 
 Individual gadgets may have their own settings. These appear in the sidebar
 under the gadget's name when available.
