@@ -7,6 +7,8 @@ sidebar:
 
 import { Aside } from '@astrojs/starlight/components';
 import Screenshot from '../../../../components/Screenshot.astro';
+import installReviewDark from '../../../../assets/screenshots/install-review-dark.png';
+import installReviewLight from '../../../../assets/screenshots/install-review-light.png';
 import replaceReviewDark from '../../../../assets/screenshots/install-review-replace-dark.png';
 import replaceReviewLight from '../../../../assets/screenshots/install-review-replace-light.png';
 import restartBarDark from '../../../../assets/screenshots/settings-gadgets-restart-bar-dark.png';
@@ -35,7 +37,7 @@ Whichever way you choose, Settings opens on the Gadgets section and shows a
 review of the gadget. Nothing is installed until you confirm it. If you open
 several files at once, you review them one after another.
 
-{/* Screenshot: install-review (the "Install ZeroTier?" dialog). */}
+<Screenshot dark={installReviewDark} light={installReviewLight} alt="Review for installing ZeroTier 0.1.0, listing its Network, Files, Clipboard and Own data permissions" maxWidth="448px" />
 
 ## Review what the gadget can do
 
