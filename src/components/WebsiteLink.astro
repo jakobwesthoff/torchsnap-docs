@@ -1,0 +1,48 @@
+---
+// Link back to the product site. The plain owl marks the product, as
+// the reading owl in the site title marks the docs. Rendered in the
+// desktop header (SocialIcons) and at the top of the mobile menu
+// (Sidebar); each caller positions it.
+import { Image } from "astro:assets";
+import websiteOwl from "../assets/logo-website.png";
+
+interface Props {
+  class?: string;
+}
+
+const { class: className } = Astro.props;
+---
+
+<a href="https://torchsnap.app" class:list={["website-link", className]}>
+  <Image
+    src={websiteOwl}
+    alt=""
+    height={22}
+    densities={[1, 2, 3]}
+    format="webp"
+    class="website-owl"
+  />
+  torchsnap.app
+</a>
+
+<style>
+  @layer starlight.core {
+    .website-link {
+      display: flex;
+      align-items: center;
+      gap: 0.4em;
+      font-size: var(--sl-text-sm);
+      font-weight: 600;
+      color: var(--sl-color-text-accent);
+      text-decoration: none;
+    }
+    .website-link:hover {
+      color: var(--sl-color-white);
+    }
+    .website-owl {
+      display: block;
+      height: 22px;
+      width: auto;
+    }
+  }
+</style>

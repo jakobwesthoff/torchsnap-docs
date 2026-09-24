@@ -1,0 +1,23 @@
+---
+// On mobile the header hides its right-hand group, and the social icons
+// only appear at the bottom of the menu, below every sidebar entry. The
+// website link goes at the top of the menu so it is visible as soon as
+// the menu opens. The desktop header already carries it.
+import Default from "@astrojs/starlight/components/Sidebar.astro";
+import WebsiteLink from "./WebsiteLink.astro";
+---
+
+<div class="mobile-website md:sl-hidden">
+  <WebsiteLink />
+</div>
+<Default />
+
+<style>
+  @layer starlight.core {
+    .mobile-website {
+      padding-block: 0.5rem 1rem;
+      margin-block-end: 0.5rem;
+      border-bottom: 1px solid var(--sl-color-gray-6);
+    }
+  }
+</style>

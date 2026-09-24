@@ -88,6 +88,7 @@ export default defineConfig({
         ThemeSelect: "./src/components/ThemeSelect.astro",
         Footer: "./src/components/Footer.astro",
         SocialIcons: "./src/components/SocialIcons.astro",
+        Sidebar: "./src/components/Sidebar.astro",
       },
       plugins: [
         starlightLlmsTxt({

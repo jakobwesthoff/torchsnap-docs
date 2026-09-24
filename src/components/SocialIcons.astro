@@ -1,22 +1,26 @@
 ---
 import { Icon } from "astro-icon/components";
+import WebsiteLink from "./WebsiteLink.astro";
 ---
 
+<!-- Starlight renders these icons in the desktop header and again in the
+     mobile menu footer. The website link shows only in the header; on
+     mobile, Sidebar.astro puts it at the top of the menu instead. -->
+<WebsiteLink class="header-website-link sl-hidden md:sl-flex" />
 <a href="https://github.com/jakobwesthoff/torchsnap" rel="me" class="sl-flex">
   <span class="sr-only">GitHub</span>
   <Icon name="simple-icons:github" class="icon" />
 </a>
-<a href="https://torchsnap.app" class="sl-flex">
-  <span class="sr-only">torchsnap.app</span>
-  <Icon name="heroicons:rocket-launch" class="icon" />
-</a>
 
 <style>
   @layer starlight.core {
-    a {
-      color: var(--sl-color-text-accent);
+    a,
+    :global(.header-website-link) {
       padding: 0.5em;
       margin: -0.5em;
+    }
+    a {
+      color: var(--sl-color-text-accent);
     }
     a:hover {
       color: var(--sl-color-white);
