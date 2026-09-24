@@ -145,7 +145,7 @@ nothing is installed until they confirm it.
 
 The gadget ID decides what an install does:
 
-- An ID that belongs to a built-in, system or development gadget is rejected.
+- An ID that belongs to a built-in, bundled or development gadget is rejected.
 - An ID that is already installed as a user gadget is replaced. The gadget's
   data and settings are kept, and the review shows which permissions are new.
 - A replace is rejected when the installed gadget was placed as a directory
@@ -163,8 +163,8 @@ The gadget ID decides what an install does:
 Only user-installed gadgets can be uninstalled. Uninstalling removes the archive
 file right away. The gadget's entire state directory (database, compile cache)
 and all settings keys in the gadget's namespace are deleted the next time
-Torchsnap starts, before any gadget loads. System gadgets bundled with the app
-cannot be uninstalled.
+Torchsnap starts, before any gadget loads. Until then the gadget shows
+**Removed on restart**. Gadgets bundled with the app cannot be uninstalled.
 
 <Aside type="caution">
   The app must be restarted after uninstalling a gadget. Hot unloading is
