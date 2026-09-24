@@ -1,5 +1,5 @@
-// Generates the full Torchsnap favicon set from the 1024 px mascot
-// source (src/assets/mascot-1024.png).
+// Generates the full Torchsnap Docs favicon set from the 1024 px
+// reading mascot source (src/assets/mascot-reading-1024.png).
 //
 // Small sizes (32 px tab icon, .ico) use the mascot on a transparent
 // background: trim → square-pad → resize.
@@ -30,7 +30,7 @@ import { execFileSync } from "node:child_process";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = resolve(HERE, "..");
-const SRC_MASCOT = resolve(PROJECT_ROOT, "src/assets/mascot-1024.png");
+const SRC_MASCOT = resolve(PROJECT_ROOT, "src/assets/mascot-reading-1024.png");
 const PUBLIC = resolve(PROJECT_ROOT, "public");
 
 // =========================================================

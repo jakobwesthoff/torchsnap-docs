@@ -80,7 +80,7 @@ The build prints warnings that need no action:
 
 `bun run build:favicon` generates `favicon.ico`, `favicon-32.png`,
 `apple-touch-icon.png`, `icon-192.png`, and `icon-192-maskable.png` in
-`public/` from `src/assets/mascot-1024.png`. The files are committed.
+`public/` from `src/assets/mascot-reading-1024.png`. The files are committed.
 Regenerate them only when the mascot changes, and commit the results.
 
 ## Releasing
