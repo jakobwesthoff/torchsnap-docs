@@ -43,7 +43,7 @@ export default defineConfig({
   integrations: [
     icon(),
     starlight({
-      title: "Torchsnap",
+      title: "Torchsnap Docs",
       logo: {
         src: "./src/assets/logo.png",
       },
