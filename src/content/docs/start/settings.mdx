@@ -97,35 +97,14 @@ list.
 | Action | Description |
 |---|---|
 | **Enable / disable** | Toggle individual gadgets on or off using the switch next to each one. |
-| **Install** | Drop `.torchsnap` files onto the drop zone, click **Choose a file...**, or double-click a `.torchsnap` file in Finder. Every install shows a review first. Installed gadgets take effect after a restart. |
-| **Replace** | Installing another version of an installed gadget replaces it and keeps its data and settings. |
-| **Uninstall** | Remove user-installed gadgets. The gadget shows **Removed on restart** until the next start, when its data and settings are deleted. Built-in and bundled gadgets ship with the app and cannot be removed. |
+| **Install** | Drop a `.torchsnap` file onto the drop zone or click **Choose a file…**. Every install shows a review first. |
+| **Uninstall** | Remove a gadget you installed. Built-in and bundled gadgets ship with the app and cannot be removed. |
 | **Undo** | Take back an install, update or uninstall before the restart. |
 
-### Changes waiting for a restart
-
-Installs, updates and uninstalls take effect when Torchsnap restarts. Until
-then the gadget's row says what happens, for example **Installs on
-restart**, **Updates to 1.2.0 on restart** or **Removed on restart**, and
-has an **Undo** button. Rows are dimmed, except for updates, where the
-installed version keeps running until the restart. A bar at the top counts the waiting
-changes and offers **Restart now**. After that restart, Torchsnap opens this
-section again.
-
-### Install review
-
-Before a gadget is installed, Torchsnap opens this section and shows:
-
-- the gadget's name, version, id and description, and the file it comes from;
-- the site the file was downloaded from, when macOS recorded it for the download;
-- every permission the gadget asks for.
-
-When the file replaces an installed version, the review also names both
-versions, warns when the new one is older, marks permissions the installed
-version did not have as **New**, and lists the ones it no longer asks for.
-
-Several files are reviewed one after another. The review groups permissions
-the same way as the permission line.
+Installs, updates and uninstalls take effect after a restart. Until then the
+gadget's row says what will happen, and a bar above the list offers
+**Restart now**. [Installing Gadgets](/start/gadgets/installing/) covers the
+review, updates and uninstalling in detail.
 
 Individual gadgets may have their own settings. These appear in the sidebar
 under the gadget's name when available.
