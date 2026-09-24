@@ -6,6 +6,13 @@ sidebar:
 ---
 
 import { Aside } from '@astrojs/starlight/components';
+import Screenshot from '../../../../components/Screenshot.astro';
+import replaceReviewDark from '../../../../assets/screenshots/install-review-replace-dark.png';
+import replaceReviewLight from '../../../../assets/screenshots/install-review-replace-light.png';
+import restartBarDark from '../../../../assets/screenshots/settings-gadgets-restart-bar-dark.png';
+import restartBarLight from '../../../../assets/screenshots/settings-gadgets-restart-bar-light.png';
+import pendingDark from '../../../../assets/screenshots/settings-gadgets-pending-dark.png';
+import pendingLight from '../../../../assets/screenshots/settings-gadgets-pending-light.png';
 
 Gadgets that don't ship with Torchsnap come as `.torchsnap` files. This page
 shows how to install one, what Torchsnap tells you about it before anything
@@ -80,7 +87,7 @@ didn't have are marked **New**, and permissions the new version no longer asks
 for are marked **Removed**. A line above the list sums up what the update adds
 and drops.
 
-{/* Screenshot: install-review-replace (the "Replace ZeroTier?" dialog). */}
+<Screenshot dark={replaceReviewDark} light={replaceReviewLight} alt="Review for replacing ZeroTier 0.1.0 with 0.2.0, with an added file permission marked New" maxWidth="448px" />
 
 You can also install an older version. The review warns you first, because
 the kept data may already have been changed by the newer version.
@@ -107,12 +114,15 @@ Until then, the gadget's row in Settings → Gadgets says what will happen:
 Rows with a pending change are dimmed, except for updates. Each one has an
 **Undo** button that takes the change back.
 
-{/* Screenshot: settings-gadgets-pending (restart bar and pending rows). */}
+<Screenshot dark={pendingDark} light={pendingLight} alt="Gadgets list with ZeroTier and Hello World dimmed, each marked Installs on restart and showing an Undo button" maxWidth="720px" />
 
-A bar above the list counts the waiting changes. Click **Restart now** to apply
-them. Torchsnap restarts and opens Settings on the Gadgets section again, so
-you can see the result. The waiting changes are also applied whenever you quit
-and start Torchsnap yourself.
+A bar above the list counts the waiting changes:
+
+<Screenshot dark={restartBarDark} light={restartBarLight} alt="Gadgets section with a bar saying 2 changes apply after a restart and a Restart now button" maxWidth="720px" />
+
+Click **Restart now** to apply them. Torchsnap restarts and opens Settings on
+the Gadgets section again, so you can see the result. The waiting changes are
+also applied whenever you quit and start Torchsnap yourself.
 
 ## Uninstall a gadget
 
