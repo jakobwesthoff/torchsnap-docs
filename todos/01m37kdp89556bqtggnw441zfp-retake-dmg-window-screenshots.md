@@ -1,3 +1,9 @@
+---
+kind: docs
+status: open
+area: [src/content/docs/start/installation.mdx, src/assets/screenshots/dmg-light.png, src/assets/screenshots/dmg-dark.png]
+---
+
 # Retake the DMG window screenshots
 
 Page: `src/content/docs/start/installation.mdx` (macOS, "DMG Download")

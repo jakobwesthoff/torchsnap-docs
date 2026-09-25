@@ -1,3 +1,9 @@
+---
+kind: docs
+status: open
+area: [src/content/docs/start/installation.mdx, src/content/docs/start/settings.mdx]
+---
+
 # Screenshots for updating and the welcome window
 
 Pages: `src/content/docs/start/installation.mdx` ("First launch",
