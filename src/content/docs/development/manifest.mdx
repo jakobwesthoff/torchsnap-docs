@@ -363,7 +363,7 @@ with a `kind` field:
 | `enum` | `values` | Argument must equal one of the listed strings. |
 | `glob` | `pattern` | Argument must match the glob pattern. |
 | `regex` | `pattern` | Argument must match the regex (anchored to the full string automatically). |
-| `path-under` | `root` | Argument must canonicalize to a path under `root`. Symlinks are resolved before checking. Supports [substitution variables](#substitution-variables). |
+| `path-under` | `root` | Argument must canonicalize to a path under `root`. Symlinks are resolved before checking, and a path through a symlink whose target does not exist is rejected. Supports [substitution variables](#substitution-variables). |
 | `any-string` | (none) | Accepts any value unconditionally. |
 | `rest` | `constraint` | Applies the inner constraint to all remaining positions. Must be the last element in the list. |
 
