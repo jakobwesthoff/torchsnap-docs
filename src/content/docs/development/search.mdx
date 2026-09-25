@@ -12,6 +12,35 @@ Every gadget participates in the launcher's search pipeline through the
 the two search modes, how results flow from your gadget to the launcher, and
 what happens when the user activates one.
 
+## The Search trait
+
+In Rust, a gadget implements the SDK's `Search` trait. Besides its three
+functions, the trait has an associated type, `Command`, that you define: each
+action on an entry carries a `Command` value, and when the user runs the
+action, `execute()` receives that value. [Commands](#commands) explains the
+details.
+
+```rust
+use serde::{Deserialize, Serialize};
+use torchsnap_gadget_sdk::prelude::*;
+
+#[derive(Serialize, Deserialize)]
+enum Command {
+    LockScreen,
+}
+
+impl Search for ScreenTools {
+    type Command = Command;
+
+    fn entries() -> Vec<CatalogEntry<Command>> { /* catalog mode */ }
+    fn search(query: String, matched_prefix: Option<String>) -> SearchResponse<Command> { /* query mode */ }
+    fn execute(command: Command) -> Result<PostAction, String> { /* run an action */ }
+}
+```
+
+`entries()` has a default implementation that returns no entries, so a gadget
+that only uses query mode can leave it out.
+
 ## Catalog mode
 
 Catalog mode is for gadgets with a finite, pre-known set of items: application
@@ -21,17 +50,14 @@ and highlighting. The [App Launcher](/start/gadgets/app-launcher/) and
 [System Commands](/start/gadgets/system-commands/) are built this way.
 
 ```rust
-fn entries() -> Vec<CatalogEntry> {
+fn entries() -> Vec<CatalogEntry<Command>> {
     vec![CatalogEntry {
         id: "lock-screen".into(),
         title: "Lock Screen".into(),
         subtitle: Some("Lock the display immediately".into()),
         icon: Some(EntryIcon::HeroIcon("lock-closed".into())),
         keywords: vec!["lock".into(), "security".into()],
-        actions: vec![Action {
-            id: ActionId::Open,
-            label: "Run".into(),
-        }],
+        actions: Actions::new().primary("Lock", Command::LockScreen),
     }]
 }
 ```
@@ -57,12 +83,12 @@ built-in fuzzy matcher is sufficient.
 
 | Field | Type | Description |
 |---|---|---|
-| `id` | `string` | Unique within this gadget. Passed back in [`execute()`](#execution). |
+| `id` | `string` | Unique within this gadget. The host records which entries the user picks by this ID ([frecency](/development/interfaces/imports/#frecency)). |
 | `title` | `string` | Display text, highlighted by the host on match. |
 | `subtitle` | `option<string>` | Secondary text below the title. |
 | `icon` | `option<entry-icon>` | See [Icons](#icons). |
 | `keywords` | `list<string>` | Extra match terms. Score without highlighting. |
-| `actions` | `list<action>` | The first action is primary (<kbd>Enter</kbd>). See [Actions](#actions). |
+| `actions` | `entry-actions` | One optional action per slot. `primary` runs on <kbd>Enter</kbd>. See [Actions](#actions). |
 
 ## Query mode
 
@@ -74,7 +100,7 @@ returns its own scored results. The [Calculator](/start/gadgets/calculator/)
 and [Bangs](/start/gadgets/bangs/) are built this way.
 
 ```rust
-fn search(query: String, matched_prefix: Option<String>) -> SearchResponse {
+fn search(query: String, matched_prefix: Option<String>) -> SearchResponse<Command> {
     if query.is_empty() {
         return SearchResponse::Nothing;
     }
@@ -105,20 +131,14 @@ result list.
 
 | Field | Type | Description |
 |---|---|---|
-| `id` | `string` | Unique within this gadget. Passed back in [`execute()`](#execution). |
+| `id` | `string` | Unique within this gadget. The host records which entries the user picks by this ID ([frecency](/development/interfaces/imports/#frecency)). |
 | `title` | `string` | Display text. |
 | `subtitle` | `option<string>` | Secondary text below the title. |
 | `icon` | `option<entry-icon>` | See [Icons](#icons). |
 | `score` | `u32` | Higher ranks higher in the result list. |
 | `title_highlight_positions` | `list<u32>` | UTF-16 code unit offsets to highlight in the title. |
 | `subtitle_highlight_positions` | `list<u32>` | UTF-16 code unit offsets to highlight in the subtitle. |
-| `actions` | `list<action>` | The first action is primary (<kbd>Enter</kbd>). See [Actions](#actions). |
-| `data` | `option<string>` | Opaque payload round-tripped through [`execute()`](#execution). |
-
-The `data` field is particularly useful: the host never inspects it and passes
-it back unchanged when the user activates the result. You can attach any
-context your gadget needs for execution (a URL, a serialized struct, a database
-key) without maintaining external state.
+| `actions` | `entry-actions` | One optional action per slot. `primary` runs on <kbd>Enter</kbd>. See [Actions](#actions). |
 
 <Aside type="tip" title="Score ranges">
   Scores are relative: the host sorts all results from all gadgets by score
@@ -158,7 +178,7 @@ The prefix is stripped from the query before it reaches your gadget, and
 triggered:
 
 ```rust
-fn search(query: String, matched_prefix: Option<String>) -> SearchResponse {
+fn search(query: String, matched_prefix: Option<String>) -> SearchResponse<Command> {
     if let Some(prefix) = &matched_prefix {
         // Prefix-exclusive mode: only this gadget is running.
         // `query` has the prefix stripped (e.g. "42+23" not "=42+23").
@@ -180,7 +200,7 @@ with `matched_prefix: None` alongside all other gadgets. If your gadget only
 makes sense in prefix mode, return `Nothing` when no prefix matched:
 
 ```rust
-fn search(query: String, matched_prefix: Option<String>) -> SearchResponse {
+fn search(query: String, matched_prefix: Option<String>) -> SearchResponse<Command> {
     if matched_prefix.is_none() {
         return SearchResponse::Nothing;
     }
@@ -258,45 +278,30 @@ For details on building the React components themselves, see
 
 ## Execution
 
-When the user activates a result, the host calls `execute()` with the full
-`ScoredEntry` (including the `data` field) and the `ActionId` of the action
-that was triggered:
+When the user runs an action, the host calls `execute()` with that action's
+command. The [Bangs](/start/gadgets/bangs/) gadget, for example, opens or copies
+the URL its command carries:
 
 ```rust
-fn execute(entry: ScoredEntry, action_id: ActionId) -> Result<PostAction, String> {
-    match action_id {
-        ActionId::Copy => {
-            clipboard::write_text(&entry.title)
-                .map_err(|e| format!("clipboard: {e:?}"))?;
-            Ok(PostAction::Dismiss)
+fn execute(command: Command) -> Result<PostAction, String> {
+    match command {
+        Command::OpenUrl(url) => {
+            opener::open_url(&url).map_err(|e| format!("open URL: {e}"))?;
         }
-        ActionId::Open => {
-            opener::open_url(&entry.data.unwrap_or_default())
-                .map_err(|e| format!("open: {e:?}"))?;
-            Ok(PostAction::Dismiss)
+        Command::CopyUrl(url) => {
+            clipboard::write_text(&url).map_err(|e| format!("copy URL to clipboard: {e}"))?;
         }
-        _ => Ok(PostAction::Nothing),
     }
+    Ok(PostAction::Dismiss)
 }
 ```
 
-`execute()` always receives a `ScoredEntry`. For query-mode results, this is
-exactly what your `search()` returned, including the `data` field. For catalog
-entries, the host constructs the `ScoredEntry` internally from your
-`CatalogEntry` after fuzzy matching. In both cases, `entry.id` matches what
-you originally provided, so you can dispatch by ID.
+`execute()` receives only the command. It does not see the entry or the slot the
+action sits in. Put everything the action needs into the command.
 
 Returning `Err(string)` logs the error on the host side. The launcher stays
-open so the user can try again.
-
-<Aside type="tip" title="The data field in catalog mode">
-  `CatalogEntry` has no `data` field. When the host converts a catalog entry
-  to a `ScoredEntry` for execution, `data` is always `None`. If you need to
-  pass context from a catalog entry into `execute()`, use the `id` field to
-  look it up. The `data` round-trip is only available in query mode, where you
-  construct the `ScoredEntry` yourself. Adding a `data` field to
-  `CatalogEntry` is being considered and may be available in a future version.
-</Aside>
+open so the user can try again. A command that does not decode into your
+`Command` type becomes an `Err` before your `execute()` runs.
 
 ### PostAction
 
@@ -309,122 +314,124 @@ open so the user can try again.
 
 ## Actions
 
-Actions define what happens when the user interacts with a search result. Each
-entry carries a list of `Action` values. The launcher's footer bar renders
-these as available operations, and `execute()` receives the chosen `ActionId`
-so the gadget knows which action to perform.
+An entry's `actions` field holds up to six actions, one per slot. The slot
+decides which key runs the action and which label the launcher shows if you
+give none. The launcher's footer bar shows the selected entry's primary action
+and a hint for every other filled slot.
 
-### How actions are displayed
+### Slots
 
-The **first action** in the list is the primary action, triggered by pressing
-<kbd>Enter</kbd>. Its `label` is shown in the footer bar as the default
-operation. All remaining actions with a keybinding appear as secondary hints
-in the footer alongside their shortcut. Actions without a keybinding are not
-shown in the footer.
+| Slot | Key | Default label |
+|---|---|---|
+| `primary` | <kbd>Enter</kbd>, or a click on the entry | None. Give a label. |
+| `secondary` | <kbd>Cmd</kbd>+<kbd>Enter</kbd> | None. Give a label. |
+| `copy` | <kbd>Cmd</kbd>+<kbd>C</kbd> | "Copy" |
+| `reveal` | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> | "Reveal in Finder" |
+| `delete` | <kbd>Cmd</kbd>+<kbd>Backspace</kbd> | "Delete" |
+| `open_settings` | <kbd>Cmd</kbd>+<kbd>,</kbd> | "Open settings" |
 
-For example, the [Bangs](/start/gadgets/bangs/) gadget returns two actions per
-result:
+On platforms other than macOS, <kbd>Ctrl</kbd> takes the place of
+<kbd>Cmd</kbd>. The WIT names the last slot `open-settings`. The default labels
+are the same English text on every platform.
+
+Gadgets do not set keybindings. An empty slot has no key and no footer hint. A
+`primary` or `secondary` action without a label is shown with the entry's
+title.
+
+### Building actions
+
+`Actions::new()` starts with every slot empty. Each slot has a builder method
+that fills it:
+
+- `.primary(label, command)` and `.secondary(label, command)` take a label, as
+  these two slots have no default.
+- `.copy(action)`, `.reveal(action)`, `.delete(action)` and
+  `.open_settings(action)` take an `Action`. `Action::new(command)` shows the
+  slot's default label, and `Action::labeled(label, command)` shows your own.
+
+The [Bangs](/start/gadgets/bangs/) gadget gives each result two actions:
 
 ```rust
-actions: vec![
-    Action {
-        id: ActionId::Open,
-        label: "Open in Browser".into(),
-    },
-    Action {
-        id: ActionId::Copy,
-        label: "Copy URL".into(),
-    },
-],
+actions: Actions::new()
+    .primary("Open in Browser", Command::OpenUrl(url.to_string()))
+    .copy(Action::labeled("Copy URL", Command::CopyUrl(url.to_string()))),
 ```
 
 The user sees "Open in Browser" as the primary action on <kbd>Enter</kbd>, and
-"Copy URL" as a secondary hint with the <kbd>Cmd</kbd>+<kbd>C</kbd> shortcut
-(assigned automatically by the host because the action uses `ActionId::Copy`).
+"Copy URL" as a hint with <kbd>Cmd</kbd>+<kbd>C</kbd>.
 
-### Well-known ActionId variants
+The same command can fill several slots. When copying is an entry's main
+action, put it in `primary` and in `copy`, and both <kbd>Enter</kbd> and
+<kbd>Cmd</kbd>+<kbd>C</kbd> copy:
 
-Gadgets never set keybindings themselves. Instead, the host assigns default
-keybindings and icons based on the `ActionId` variant. Using a well-known
-variant means your action automatically gets the right shortcut and integrates
-consistently with the rest of the launcher:
+```rust
+actions: Actions::new()
+    .primary("Copy", Command::CopyName(name.to_string()))
+    .copy(Action::new(Command::CopyName(name.to_string()))),
+```
 
-| Variant | Default keybinding | Typical use |
-|---|---|---|
-| `Open` | none (primary, <kbd>Enter</kbd>) | Open a URL, launch an app, run a command. |
-| `Copy` | <kbd>Cmd</kbd>+<kbd>C</kbd> | Copy text to the clipboard. |
-| `Reveal` | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> | Show a file in the OS file manager. |
-| `OpenWith` | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> | Open with an alternative handler. |
-| `Delete` | <kbd>Cmd</kbd>+<kbd>Backspace</kbd> | Remove the entry (e.g. delete a clipboard history item). |
-| `OpenSettings` | <kbd>Cmd</kbd>+<kbd>,</kbd> | Open this gadget's settings. |
+Calling a builder method twice for the same slot replaces the first action.
+`Actions` is also a struct with one public `Option` field per slot, so you can
+write it as a struct literal with `..Default::default()` instead. There,
+filling a slot twice does not compile.
 
-Choose the variant that matches the semantic intent of your action. The host
-does not enforce what the action actually does in `execute()`, but using the
-matching variant means users get the keyboard shortcut they expect.
+`actions.iter()` yields the filled slots as `(Slot, &Action)` pairs, in the
+order of the table above.
+
+### Commands
+
+A command is a value of your gadget's `Command` type. It says what running an
+action does and carries the data the action needs, such as a URL or a network
+ID. The host stores it with the entry, never inspects it, and hands it back
+unchanged to `execute()`.
+
+`Command` must implement serde's `Serialize` and `Deserialize`. The SDK encodes
+each command to JSON when your entries leave the gadget and decodes it again
+before `execute()` runs. If a command fails to encode, the SDK logs a warning
+and drops the entry.
+
+The [ZeroTier](/start/gadgets/zerotier/) gadget has one variant per thing its
+entries can do. A network entry's actions, simplified from that gadget:
+
+```rust
+#[derive(Serialize, Deserialize)]
+enum Command {
+    /// Join the network, or leave it if joined.
+    Toggle(String),
+    CopyId(String),
+    /// Leave the network if joined and remove it from the history.
+    Forget(String),
+    OpenSettings,
+}
+
+fn network_actions(network_id: &str, label: &str) -> Actions<Command> {
+    Actions::new()
+        .primary(label, Command::Toggle(network_id.to_string()))
+        .copy(Action::labeled("Copy network id", Command::CopyId(network_id.to_string())))
+        .delete(Action::labeled("Forget", Command::Forget(network_id.to_string())))
+}
+```
+
+At the WIT level, a command is a plain `string`. A gadget that implements the
+WIT export without the Rust SDK chooses its own encoding.
 
 ### Opening your settings
 
-The host passes `OpenSettings` to `execute()` like every other action. To open
-the Settings window on your gadget's section, return `PostAction::OpenSettings`.
-This suits entries like "API token missing", where the fix is a field in your
-settings:
+The host passes the command in the `open_settings` slot to `execute()` like any
+other. To open the Settings window on your gadget's section, return
+`PostAction::OpenSettings` for it.
+
+When an entry exists to send the user to a settings field, such as "API token
+missing", put that command in `primary` so that <kbd>Enter</kbd> opens the
+settings. ZeroTier's "token not configured" entry does this:
 
 ```rust
-fn execute(entry: ScoredEntry, action_id: ActionId) -> Result<PostAction, String> {
-    match action_id {
-        ActionId::OpenSettings => Ok(PostAction::OpenSettings),
-        _ => Ok(PostAction::Nothing),
-    }
-}
+// In search():
+actions: Actions::new().primary("Open settings", Command::OpenSettings),
+
+// In execute():
+Command::OpenSettings => Ok(PostAction::OpenSettings),
 ```
-
-### Custom actions
-
-For gadget-specific operations that don't map to any well-known variant, use
-`Custom(string)` as the primary action:
-
-```rust
-actions: vec![
-    Action {
-        id: ActionId::Custom("connect".into()),
-        label: "Connect".into(),
-    },
-    Action {
-        id: ActionId::Copy,
-        label: "Copy Address".into(),
-    },
-],
-```
-
-This entry has a custom "Connect" as its primary action (<kbd>Enter</kbd>) and
-a well-known `Copy` as a secondary action (reachable via
-<kbd>Cmd</kbd>+<kbd>C</kbd>). In `execute()`, match on the custom string to
-dispatch:
-
-```rust
-fn execute(entry: ScoredEntry, action_id: ActionId) -> Result<PostAction, String> {
-    match action_id {
-        ActionId::Custom(ref name) if name == "connect" => {
-            // handle connect
-            Ok(PostAction::Dismiss)
-        }
-        ActionId::Copy => {
-            clipboard::write_text(&entry.title)
-                .map_err(|e| format!("clipboard: {e:?}"))?;
-            Ok(PostAction::Dismiss)
-        }
-        _ => Ok(PostAction::Nothing),
-    }
-}
-```
-
-<Aside type="caution" title="Custom actions have no keybinding">
-  The host does not assign a keyboard shortcut to `Custom` actions. Since
-  secondary actions are only reachable through their keybinding, a `Custom`
-  action placed at any position other than first in the list can never be
-  triggered by the user. Always place `Custom` actions as the primary (first)
-  entry and use well-known variants for any secondary actions.
-</Aside>
 
 ## Icons
 

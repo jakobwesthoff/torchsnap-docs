@@ -27,14 +27,18 @@ interface types {
     emoji(string),
   }
 
-  variant action-id {
-    open, copy, reveal, open-with, delete, open-settings,
-    custom(string),
+  record action {
+    label: option<string>,
+    command: string,
   }
 
-  record action {
-    id: action-id,
-    label: string,
+  record entry-actions {
+    primary: option<action>,
+    secondary: option<action>,
+    copy: option<action>,
+    reveal: option<action>,
+    delete: option<action>,
+    open-settings: option<action>,
   }
 }
 ```
@@ -42,11 +46,13 @@ interface types {
 | Type | Description |
 |---|---|
 | `EntryIcon` | Icon for a search result. `HeroIcon` takes a [Heroicons](https://heroicons.com/) name, `DataUrl` a base64-encoded inline image, `AssetIcon` a path relative to the gadget archive, and `Emoji` a Unicode emoji character. |
-| `ActionId` | Identifies an action on a search result. Well-known variants (`Open`, `Copy`, `Reveal`, `OpenWith`, `Delete`, `OpenSettings`) receive default keybindings and icons from the host. `Custom(string)` is the escape hatch for gadget-specific actions. |
-| `Action` | Pairs an `ActionId` with a display label. The first action in an entry's list is the primary action, activated with <kbd>Enter</kbd>. |
+| `Action` | One action on an entry: an optional label and a command. The host stores the command, never inspects it, and hands it back unchanged to `execute()`. Without a label, the launcher shows the slot's default label. |
+| `EntryActions` | The actions of an entry, one optional field per slot. The slot decides the key that runs the action. See [Actions](/development/search/#actions). |
 
-These types are available in the SDK prelude as `EntryIcon`, `ActionId`, and
-`Action`.
+The SDK prelude exports `EntryIcon` as generated. For actions, it exports the
+SDK's own `Action` and `Actions` types, which carry your gadget's command type
+instead of a string. The [Exports](/development/interfaces/exports/#types)
+reference describes them.
 
 ## Logging
 

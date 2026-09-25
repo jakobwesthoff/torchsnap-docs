@@ -70,33 +70,47 @@ async function loadPage(page: number) {
 ## Backend side
 
 On the Rust side, `sendMessage` calls route to the gadget's
-[`handle_message`](/development/interfaces/exports/#messaging) export. The
-`method` string maps directly to the first argument. Both the payload and
-response are JSON-encoded strings:
+[`handle-message`](/development/interfaces/exports/#messaging) export. The SDK's
+`Messaging` trait decodes each call into a `Request` enum you define: the
+`method` string selects the variant, and the payload fills its fields. The
+backend for the example above:
 
 ```rust
-impl MessagingGuest for MyGadget {
-    fn handle_message(method: String, payload: String) -> Result<String, String> {
-        match method.as_str() {
-            "get_history" => {
-                let req: PageRequest = messaging::parse_payload(&payload)?;
-                let page = load_history_page(req.page)?;
-                messaging::to_response(&page)
+#[derive(Deserialize)]
+#[serde(tag = "method", content = "payload", rename_all = "snake_case")]
+enum Request {
+    GetHistory { page: u32 },
+    ClearHistory,
+}
+
+impl Messaging for MyGadget {
+    type Request = Request;
+
+    fn handle(request: Request) -> Result<serde_json::Value, String> {
+        match request {
+            Request::GetHistory { page } => {
+                let page = load_history_page(page)?;
+                serde_json::to_value(&page).map_err(|e| format!("serialize history page: {e}"))
             }
-            "clear_history" => {
+            Request::ClearHistory => {
                 clear_history_db()?;
-                messaging::to_response(&true)
+                Ok(serde_json::Value::Bool(true))
             }
-            _ => Err(format!("unknown method: {method}")),
         }
     }
 }
 ```
 
-The SDK helpers `messaging::parse_payload` and `messaging::to_response` handle
-JSON serialization. See the
+`rename_all = "snake_case"` maps `GetHistory` to the method name
+`"get_history"`. `ClearHistory` has no fields, and the empty object the
+frontend sends as its payload is accepted. An unknown method, or a payload that
+does not fit its variant, rejects the `sendMessage` promise before `handle`
+runs.
+
+A gadget can also implement the generated `MessagingGuest` trait by hand and
+work with the raw JSON strings. See the
 [Exports reference](/development/interfaces/exports/#messaging) for the full
-WIT contract and SDK trait details.
+WIT contract, both traits and the SDK helpers.
 
 ## JSON encoding
 
@@ -112,7 +126,7 @@ type safety on the frontend side, but the actual wire format is always a JSON
 string. Make sure your Rust types and TypeScript types agree on the shape.
 
 <Aside type="note">
-  Returning `Err(String)` from `handle_message` rejects the `sendMessage`
+  Returning `Err(String)` from `handle` or `handle_message` rejects the `sendMessage`
   promise with the error string. Use this for validation errors, missing data,
   or any other expected failure the frontend should handle.
 </Aside>

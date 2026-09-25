@@ -12,7 +12,9 @@ the `gadget` world. Each section shows the WIT contract, the SDK trait, and
 usage examples. For background on the WIT notation, see the
 [WIT Primer](/development/interfaces/).
 
-Every gadget must implement all four export interfaces. The SDK provides
+Every gadget must implement all four export interfaces. For search and
+messaging, the SDK provides the typed `Search` and `Messaging` traits, which
+implement the generated guest traits for you. It also provides
 `impl_noop_messaging!` and `impl_noop_tasks!` macros for interfaces your gadget
 doesn't use. Registration is handled by the `define_gadget!` macro:
 
@@ -150,7 +152,7 @@ function reference.
 
 ```wit
 interface search {
-  use types.{entry-icon, action-id, action};
+  use types.{entry-icon, entry-actions};
 
   record catalog-entry {
     id: string,
@@ -158,7 +160,7 @@ interface search {
     subtitle: option<string>,
     icon: option<entry-icon>,
     keywords: list<string>,
-    actions: list<action>,
+    actions: entry-actions,
   }
 
   record scored-entry {
@@ -169,8 +171,7 @@ interface search {
     score: u32,
     title-highlight-positions: list<u32>,
     subtitle-highlight-positions: list<u32>,
-    actions: list<action>,
-    data: option<string>,
+    actions: entry-actions,
   }
 
   record view-response {
@@ -190,21 +191,44 @@ interface search {
 
   entries: func() -> list<catalog-entry>;
   search: func(query: string, matched-prefix: option<string>) -> search-response;
-  execute: func(entry: scored-entry, action-id: action-id) -> result<post-action, string>;
+  execute: func(command: string) -> result<post-action, string>;
 }
 ```
+
+`entry-actions` comes from the shared
+[`types`](/development/interfaces/imports/#shared-types) interface.
 
 ### SDK trait
 
 ```rust
-pub trait SearchGuest {
-    fn entries() -> Vec<CatalogEntry>;
-    fn search(query: String, matched_prefix: Option<String>) -> SearchResponse;
-    fn execute(entry: ScoredEntry, action_id: ActionId) -> Result<PostAction, String>;
+pub trait Search {
+    type Command: Serialize + DeserializeOwned;
+
+    fn entries() -> Vec<CatalogEntry<Self::Command>> {
+        Vec::new()
+    }
+    fn search(query: String, matched_prefix: Option<String>) -> SearchResponse<Self::Command>;
+    fn execute(command: Self::Command) -> Result<PostAction, String>;
 }
 ```
 
+`Command` is your gadget's own type for what an action does (see
+[Commands](/development/search/#commands)). The SDK implements the generated
+`SearchGuest` trait for every type that implements `Search`. That
+implementation encodes the commands of your entries to JSON on the way out,
+and decodes the command string back into `Self::Command` before it calls your
+`execute()`.
+
+You can implement `SearchGuest` by hand instead and work with the raw WIT types
+and command strings. The prelude does not export it. Import it as
+`torchsnap_gadget_sdk::SearchGuest`, and the generated entry types from
+`torchsnap_gadget_sdk::wit_search`. A type that implements `Search` cannot also
+implement `SearchGuest`.
+
 ### Types
+
+The entry, action, and response types below are the SDK's own. They are
+generic over the command type `C`, and the prelude exports them.
 
 #### CatalogEntry
 
@@ -213,18 +237,17 @@ Returned by `entries()` for host-side fuzzy matching
 
 | Field | Type | Description |
 |---|---|---|
-| `id` | `String` | Unique identifier within this gadget. Passed back in `execute()`. |
+| `id` | `String` | Unique identifier within this gadget. The host records which entries the user picks by this ID. |
 | `title` | `String` | Primary display text. The host highlights match positions. |
 | `subtitle` | `Option<String>` | Secondary text shown below the title. |
 | `icon` | `Option<EntryIcon>` | Result icon. See [shared types](/development/interfaces/imports/#shared-types). |
 | `keywords` | `Vec<String>` | Additional match targets. Keyword matches score the entry but are not highlighted in the title. |
-| `actions` | `Vec<Action>` | The first action is the primary one (<kbd>Enter</kbd>). Well-known `ActionId` variants receive default keybindings from the host. |
+| `actions` | `Actions<C>` | The entry's actions, one optional action per slot. See [Actions](#actions). |
 
 #### ScoredEntry
 
 Returned by `search()` for gadget-scored results
-([query mode](/development/search/#query-mode)). Also passed back into
-`execute()`.
+([query mode](/development/search/#query-mode)).
 
 | Field | Type | Description |
 |---|---|---|
@@ -235,17 +258,53 @@ Returned by `search()` for gadget-scored results
 | `score` | `u32` | Sort ranking. Higher scores appear first. |
 | `title_highlight_positions` | `Vec<u32>` | UTF-16 code unit offsets to highlight in the title. |
 | `subtitle_highlight_positions` | `Vec<u32>` | UTF-16 code unit offsets to highlight in the subtitle. |
-| `actions` | `Vec<Action>` | Same semantics as `CatalogEntry`. |
-| `data` | `Option<String>` | Opaque gadget-private payload, round-tripped through `execute()`. |
+| `actions` | `Actions<C>` | Same semantics as `CatalogEntry`. |
+
+#### Actions
+
+The actions of an entry, one optional field per
+[slot](/development/search/#slots). The slot decides the key that runs the
+action.
+
+| Field | Type | Key |
+|---|---|---|
+| `primary` | `Option<Action<C>>` | <kbd>Enter</kbd>, or a click on the entry |
+| `secondary` | `Option<Action<C>>` | <kbd>Cmd</kbd>+<kbd>Enter</kbd> |
+| `copy` | `Option<Action<C>>` | <kbd>Cmd</kbd>+<kbd>C</kbd> |
+| `reveal` | `Option<Action<C>>` | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> |
+| `delete` | `Option<Action<C>>` | <kbd>Cmd</kbd>+<kbd>Backspace</kbd> |
+| `open_settings` | `Option<Action<C>>` | <kbd>Cmd</kbd>+<kbd>,</kbd> |
+
+<kbd>Cmd</kbd> is <kbd>Ctrl</kbd> on platforms other than macOS.
+
+| Method | Description |
+|---|---|
+| `Actions::new()` | No actions. Same as `Actions::default()`. |
+| `.primary(label, command)` | Fill `primary` with a labeled action. |
+| `.secondary(label, command)` | Fill `secondary` with a labeled action. |
+| `.copy(action)`, `.reveal(action)`, `.delete(action)`, `.open_settings(action)` | Fill that slot with `action`. |
+| `.iter()` | The filled slots as `(Slot, &Action<C>)` pairs, in the order of the fields above. |
+
+A second builder call for the same slot replaces the first action.
+
+#### Action
+
+| Field | Type | Description |
+|---|---|---|
+| `label` | `Option<String>` | What the launcher shows. `None` shows the slot's default label, such as "Copy". `primary` and `secondary` have no default and show the entry's title. |
+| `command` | `C` | What running the action does. `execute()` receives it when the user runs the action. |
+
+`Action::new(command)` creates an action without a label, and
+`Action::labeled(label, command)` one with a label.
 
 #### SearchResponse
 
 | Variant | Description |
 |---|---|
 | `Nothing` | The gadget has nothing for this query. |
-| `Results(Vec<ScoredEntry>)` | Standard scored results merged into the host's result list. |
-| `CustomUi(ViewResponse)` | Replaces the entire result list with the named [frontend view](/development/frontend/views/). |
-| `InlineUi(ViewResponse)` | Rendered above the result list. Only one gadget can claim the inline slot per search. |
+| `Results(Vec<ScoredEntry<C>>)` | Standard scored results merged into the host's result list. |
+| `CustomUi(ViewResponse<C>)` | Replaces the entire result list with the named [frontend view](/development/frontend/views/). |
+| `InlineUi(ViewResponse<C>)` | Rendered above the result list. Only one gadget can claim the inline slot per search. |
 
 Returning `Results(vec![])` is semantically different from `Nothing`: it tells
 the host the gadget participated and explicitly produced zero results, which
@@ -257,7 +316,7 @@ clears any stale entries from a previous keystroke.
 |---|---|---|
 | `view` | `String` | Name of the frontend component registered in the [manifest](/development/manifest/#custom-views). |
 | `data` | `Option<String>` | JSON-encoded payload forwarded to the React component. |
-| `results` | `Vec<ScoredEntry>` | Entries to display in the result list alongside the view. Empty for full-takeover custom UIs. |
+| `results` | `Vec<ScoredEntry<C>>` | Entries to display in the result list alongside the view. Empty for full-takeover custom UIs. |
 
 #### PostAction
 
@@ -268,14 +327,16 @@ Returned by `execute()` to control launcher behavior after activation.
 | `Nothing` | Leave the launcher open, state unchanged. |
 | `Dismiss` | Close the launcher and reset its state. |
 | `KeepOpen` | Leave the launcher open. Functionally identical to `Nothing`; exists as a semantic signal for multi-select workflows. |
+| `OpenSettings` | Close the launcher and open the Settings window on this gadget's section. A gadget without a settings section of its own gets the Gadgets page. |
 
 ### entries()
 
 Returns the gadget's catalog entries for host-side fuzzy matching. Called on
-every keystroke. Gadgets that only use query mode return an empty `Vec`.
+every keystroke. Gadgets that only use query mode can leave it out, as the
+default implementation returns an empty `Vec`.
 
 ```rust
-fn entries() -> Vec<CatalogEntry> {
+fn entries() -> Vec<CatalogEntry<Command>> {
     QUOTES.with(|q| {
         q.borrow()
             .iter()
@@ -303,7 +364,7 @@ it. `None` otherwise. Gadgets that only use catalog mode return
 `SearchResponse::Nothing`.
 
 ```rust
-fn search(query: String, matched_prefix: Option<String>) -> SearchResponse {
+fn search(query: String, matched_prefix: Option<String>) -> SearchResponse<Command> {
     let input = match &matched_prefix {
         Some(prefix) => &query[prefix.len()..],
         None => &query,
@@ -328,44 +389,31 @@ fn search(query: String, matched_prefix: Option<String>) -> SearchResponse {
 
 ### execute()
 
-Runs when the user activates a result. Receives the full `ScoredEntry`
-(including the `data` field) and the `ActionId` of the triggered action.
+Runs when the user runs an action. Receives the command of that action,
+decoded into your `Command` type. The entry and the slot are not passed. Put
+everything the action needs into the command.
 
-The `data` field is the primary mechanism for passing context from `search()` to
-`execute()`. Use the SDK's `data::encode` and `data::decode` helpers:
+A gadget whose entries open or copy a URL, and whose "API token missing" entry
+opens its settings:
 
 ```rust
-// In search(): attach context
-let entry = ScoredEntry {
-    data: Some(data::encode(&url)?),
-    // ...
-};
-
-// In execute(): retrieve context
-fn execute(entry: ScoredEntry, action_id: ActionId) -> Result<PostAction, String> {
-    match action_id {
-        ActionId::Open => {
-            let url: String = data::decode(
-                entry.data.as_deref().ok_or("missing data")?,
-            )?;
-            opener::open_url(&url)?;
+fn execute(command: Command) -> Result<PostAction, String> {
+    match command {
+        Command::OpenUrl(url) => {
+            opener::open_url(&url).map_err(|e| format!("open URL: {e}"))?;
             Ok(PostAction::Dismiss)
         }
-        ActionId::Copy => {
-            clipboard::write_text(&entry.title)?;
+        Command::CopyUrl(url) => {
+            clipboard::write_text(&url).map_err(|e| format!("copy URL to clipboard: {e}"))?;
             Ok(PostAction::Dismiss)
         }
-        _ => Ok(PostAction::Nothing),
+        Command::OpenSettings => Ok(PostAction::OpenSettings),
     }
 }
 ```
 
-<Aside type="tip" title="Data in catalog mode">
-  `CatalogEntry` has no `data` field. When the host converts a catalog entry to
-  a `ScoredEntry` for execution, `data` is always `None`. Use the entry's `id`
-  to look up context instead. Adding a `data` field to catalog entries is being
-  considered for a future version.
-</Aside>
+If the command string does not decode into `Command`, the SDK returns an `Err`
+without calling your `execute()`.
 
 ## Messaging
 
@@ -384,22 +432,74 @@ interface messaging {
 ### SDK trait
 
 ```rust
+pub trait Messaging {
+    type Request: DeserializeOwned;
+
+    fn handle(request: Self::Request) -> Result<serde_json::Value, String>;
+}
+```
+
+`Request` lists every method your frontend calls. The SDK deserializes each
+call from an object with a `method` and a `payload` key, so an enum with
+serde's adjacent tagging maps each method name to a variant and the payload to
+the variant's fields:
+
+```rust
+#[derive(Deserialize)]
+#[serde(tag = "method", content = "payload", rename_all = "snake_case")]
+enum Request {
+    GetHistory { page: u32 },
+    ClearHistory,
+}
+
+impl Messaging for MyGadget {
+    type Request = Request;
+
+    fn handle(request: Request) -> Result<serde_json::Value, String> {
+        match request {
+            Request::GetHistory { page } => {
+                let entries = load_history_page(page)?;
+                serde_json::to_value(&entries).map_err(|e| format!("serialize history: {e}"))
+            }
+            Request::ClearHistory => {
+                clear_history_db()?;
+                Ok(serde_json::Value::Bool(true))
+            }
+        }
+    }
+}
+```
+
+Methods without arguments are unit variants such as `ClearHistory`. They
+accept an empty object or `null` as payload.
+
+The SDK implements the generated `MessagingGuest` trait for every type that
+implements `Messaging`, and serializes the `Ok` value as the response.
+`Err(String)` propagates to the frontend as an error on the `sendMessage`
+promise. An unknown method or a payload that does not fit its variant rejects
+the promise as well, before `handle` runs.
+
+### Implementing MessagingGuest by hand
+
+A gadget can implement the generated trait directly instead. The prelude does
+not export it. Import it as `torchsnap_gadget_sdk::MessagingGuest`:
+
+```rust
 pub trait MessagingGuest {
     fn handle_message(method: String, payload: String) -> Result<String, String>;
 }
 ```
 
-Both `payload` and the `Ok` return value are JSON-encoded strings. `Err(String)`
-propagates to the frontend as an error on the `sendMessage` promise.
-
-The `method` parameter lets a single gadget expose multiple operations. The
+Both `payload` and the `Ok` return value are JSON-encoded strings. The
+`method` parameter lets a single gadget expose multiple operations. The
 standard pattern is a match on method names:
 
 ```rust
 fn handle_message(method: String, payload: String) -> Result<String, String> {
     match method.as_str() {
         "get_history" => {
-            let entries = load_history_from_db()?;
+            let request: PageRequest = messaging::parse_payload(&payload)?;
+            let entries = load_history_page(request.page)?;
             messaging::to_response(&entries)
         }
         "clear_history" => {
@@ -413,8 +513,12 @@ fn handle_message(method: String, payload: String) -> Result<String, String> {
 
 ### SDK helpers
 
+The `messaging` module is not in the prelude. Import it with
+`use torchsnap_gadget_sdk::messaging;`.
+
 | Function | Description |
 |---|---|
+| `messaging::decode_request<R>(method, payload)` | Decode a call into `R` the way `Messaging` does. Public so your tests can check your `Request` enum against the payloads your frontend sends. |
 | `messaging::parse_payload<T>(payload)` | Parse the JSON-encoded payload into `T`. |
 | `messaging::to_response<T>(value)` | Serialize `value` as a JSON-encoded response string. |
 

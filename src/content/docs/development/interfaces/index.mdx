@@ -79,8 +79,8 @@ A `record` is a named struct with typed fields:
 
 ```wit
 record action {
-  id: action-id,
-  label: string,
+  label: option<string>,
+  command: string,
 }
 ```
 
@@ -142,13 +142,13 @@ The `use` keyword imports types from another interface so they can be shared:
 
 ```wit
 interface search {
-  use types.{entry-icon, action-id, action};
+  use types.{entry-icon, entry-actions};
   // ...
 }
 ```
 
-This allows `search` to reference `entry-icon`, `action-id`, and `action`
-without redefining them. The `types` interface exists specifically to hold shared
+This allows `search` to reference `entry-icon` and `entry-actions` without
+redefining them. The `types` interface exists specifically to hold shared
 type definitions used by both imports and exports.
 
 ## Generating bindings
@@ -179,8 +179,14 @@ wit_bindgen::generate!({
 This produces the four guest traits (`LifecycleGuest`, `SearchGuest`,
 `MessagingGuest`, `TasksGuest`), all the WIT record and variant types
 (`CatalogEntry`, `ScoredEntry`, `SearchResponse`, `EntryIcon`, etc.), and the
-host import modules (`clipboard`, `http`, `opener`, and so on). The SDK
-re-exports everything through its prelude, so your gadget code only needs:
+host import modules (`clipboard`, `http`, `opener`, and so on).
+
+For search and messaging, the SDK adds typed `Search` and `Messaging` traits
+that implement `SearchGuest` and `MessagingGuest` for you, and its own entry
+and response types that carry your gadget's command type. Its prelude exports
+these together with `LifecycleGuest`, `TasksGuest`, `EntryIcon`, `PostAction`,
+the host import modules and the SDK's helper modules, so your gadget code only
+needs:
 
 ```rust
 use torchsnap_gadget_sdk::prelude::*;
@@ -212,8 +218,10 @@ canonical copy lives at
 [`gadgets/gadget-sdk/wit/torchsnap-gadget.wit`](https://github.com/jakobwesthoff/torchsnap/blob/main/gadgets/gadget-sdk/wit/torchsnap-gadget.wit)
 in the [Torchsnap repository](https://github.com/jakobwesthoff/torchsnap).
 
-<Aside type="note" title="Documentation version: torchsnap:gadget@0.1.0">
-  This documentation reflects the `torchsnap:gadget@0.1.0` WIT contract. The
+<Aside type="note" title="Documentation version: torchsnap:gadget@0.2.0">
+  This documentation reflects the `torchsnap:gadget@0.2.0` WIT contract. The
+  Rust SDK (`torchsnap-gadget-sdk`) and the TypeScript SDK
+  (`@torchsnap/gadget-sdk`) share its version number. The
   pages in this section cannot be automatically generated from the WIT file. While
   we keep them in sync with each release, the canonical WIT file in the SDK
   repository always takes precedence if you notice a discrepancy.

@@ -111,7 +111,8 @@ Returns actions for controlling the launcher from within a view:
 |---|---|
 | `goBack()` | Return to the normal result list, dismissing the custom view. |
 | `dismiss()` | Close the launcher entirely. |
-| `onExecute(entryId, actionId)` | Trigger execution of a result entry with the given action. |
+| `openSettings()` | Open the Settings window on this gadget's section and close the launcher, like the `OpenSettings` [post-action](/development/search/#postaction). Returns a promise that rejects, with the launcher still open, when the window cannot open. |
+| `onExecute(entryId, slot)` | Run the action in `slot` of an entry the view received in `results`. See [Running entry actions](#running-entry-actions). |
 | `onFooterChange(state)` | Replace the launcher's footer bar with custom content. |
 | `setDisplayQuery(query)` | Update the search bar text without triggering a new search. |
 | `mouseActiveRef` | A ref indicating whether the mouse is currently active (for keyboard/mouse interaction management). |
@@ -120,6 +121,33 @@ Returns actions for controlling the launcher from within a view:
   `useLauncher()` is only available in launcher views (custom and inline). It
   throws if called from a settings panel.
 </Aside>
+
+### Running entry actions
+
+A view that renders its own list of `results` runs an entry's action with
+`onExecute`. `slot` is one of `"primary"`, `"secondary"`, `"copy"`,
+`"reveal"`, `"delete"` and `"openSettings"` (the `ActionSlot` type), matching
+the [slots](/development/search/#slots) of the Rust SDK. The host passes the
+command in that slot to the gadget's `execute()`, and the launcher closes if
+`execute()` returns `Dismiss`.
+
+The [Emoji Picker](/start/gadgets/emoji-picker/)'s grid copies the selected
+emoji on <kbd>Enter</kbd>:
+
+```tsx
+const { onExecute } = useLauncher();
+
+const entry = results[selectedIndex];
+if (entry) {
+  onExecute(entry.id, "copy");
+}
+```
+
+`onExecute` only reaches entries from the view's `results`. For an unknown
+entry ID, or a slot the entry leaves empty, nothing happens. A view that acts
+on its own state instead, such as a value it computed, calls its backend with
+[`sendMessage`](/development/frontend/messaging/) and then a launcher action
+such as `dismiss()`.
 
 ### Footer management
 

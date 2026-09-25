@@ -93,11 +93,11 @@ host does not care what language produced the WASM binary.
 
 For [Rust](https://www.rust-lang.org/), the `torchsnap-gadget-sdk` crate
 provides a convenience layer: it handles WIT binding generation and adds
-ergonomic helpers on top of the raw interfaces. Its prelude brings the four
-guest traits
+ergonomic helpers on top of the raw interfaces. Its prelude brings the traits
+a gadget implements
 ([`LifecycleGuest`](/development/interfaces/exports/#lifecycle),
-[`SearchGuest`](/development/interfaces/exports/#search),
-[`MessagingGuest`](/development/interfaces/exports/#messaging),
+[`Search`](/development/interfaces/exports/#search),
+[`Messaging`](/development/interfaces/exports/#messaging),
 [`TasksGuest`](/development/interfaces/exports/#tasks)), all search-related
 types, host import functions, and registration macros into scope. All bundled
 gadgets are built with it. The [Getting Started](/development/your-first-gadget/)

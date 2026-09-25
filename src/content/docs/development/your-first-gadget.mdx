@@ -118,6 +118,7 @@ Replace `gadgets/hello-world/src/lib.rs` with the following. Each section is
 explained in the walkthrough below.
 
 ```rust title="src/lib.rs"
+use serde::{Deserialize, Serialize};
 use torchsnap_gadget_sdk::prelude::*;
 
 struct HelloWorld;
@@ -149,8 +150,15 @@ impl LifecycleGuest for HelloWorld {
     fn on_setting_changed(_key: String, _value: String) {}
 }
 
-impl SearchGuest for HelloWorld {
-    fn entries() -> Vec<CatalogEntry> {
+#[derive(Serialize, Deserialize)]
+enum Command {
+    CopyQuote(String),
+}
+
+impl Search for HelloWorld {
+    type Command = Command;
+
+    fn entries() -> Vec<CatalogEntry<Command>> {
         QUOTES
             .iter()
             .map(|(id, text, author)| CatalogEntry {
@@ -159,21 +167,24 @@ impl SearchGuest for HelloWorld {
                 subtitle: Some(author.to_string()),
                 icon: Some(EntryIcon::HeroIcon("light-bulb".into())),
                 keywords: vec!["quote".into(), id.to_string()],
-                actions: vec![Action {
-                    id: ActionId::Copy,
-                    label: "Copy".into(),
-                }],
+                actions: Actions::new()
+                    .primary("Copy", Command::CopyQuote(text.to_string()))
+                    .copy(Action::new(Command::CopyQuote(text.to_string()))),
             })
             .collect()
     }
 
-    fn search(_query: String, _matched_prefix: Option<String>) -> SearchResponse {
+    fn search(_query: String, _matched_prefix: Option<String>) -> SearchResponse<Command> {
         SearchResponse::Nothing
     }
 
-    fn execute(entry: ScoredEntry, _action_id: ActionId) -> Result<PostAction, String> {
-        clipboard::write_text(&entry.title)
-            .map_err(|e| format!("clipboard write failed: {e:?}"))?;
+    fn execute(command: Command) -> Result<PostAction, String> {
+        match command {
+            Command::CopyQuote(text) => {
+                clipboard::write_text(&text)
+                    .map_err(|e| format!("clipboard write failed: {e:?}"))?;
+            }
+        }
 
         Ok(PostAction::Dismiss)
     }
@@ -183,6 +194,7 @@ impl SearchGuest for HelloWorld {
 ### Registration
 
 ```rust
+use serde::{Deserialize, Serialize};
 use torchsnap_gadget_sdk::prelude::*;
 
 struct HelloWorld;
@@ -193,7 +205,8 @@ impl_noop_tasks!(HelloWorld);
 
 Every gadget starts with these lines. `define_gadget!` registers `HelloWorld` as
 the WASM component's entry point, wiring the WIT guest exports to trait
-implementations on the struct.
+implementations on the struct. The `serde` import is for the gadget's
+[command type](#commands).
 
 `impl_noop_messaging!` and `impl_noop_tasks!` generate stub implementations
 for the [`messaging`](/development/interfaces/exports/#messaging) and
@@ -231,6 +244,31 @@ This example uses the [`logging`](/development/interfaces/imports/#logging)
 import to emit a message on enable. Log output is visible in the
 [Torchsnap devtools panel](/development/devtools/). {/* TODO: devtools page */}
 
+### Commands
+
+```rust
+#[derive(Serialize, Deserialize)]
+enum Command {
+    CopyQuote(String),
+}
+
+impl Search for HelloWorld {
+    type Command = Command;
+    // entries(), search() and execute() follow below.
+}
+```
+
+The [`search`](/development/interfaces/exports/#search) interface is
+implemented through the SDK's `Search` trait. Its `Command` type is yours to
+define: it says what the gadget's actions do. Every action on an entry carries
+a `Command` value, and when the user runs the action, `execute()` receives
+that value. This gadget has a single command, copying a quote, and the command
+carries the quote text.
+
+The SDK encodes commands as JSON on their way to the host and decodes them on
+their way back, so `Command` derives serde's `Serialize` and `Deserialize`.
+See [Commands](/development/search/#commands) for the details.
+
 ### Catalog entries
 
 ```rust
@@ -242,7 +280,7 @@ const QUOTES: &[(&str, &str, &str)] = &[
     ("knuth", "Premature optimization is the root of all evil.", "Donald Knuth"),
 ];
 
-fn entries() -> Vec<CatalogEntry> {
+fn entries() -> Vec<CatalogEntry<Command>> {
     QUOTES
         .iter()
         .map(|(id, text, author)| CatalogEntry {
@@ -251,10 +289,9 @@ fn entries() -> Vec<CatalogEntry> {
             subtitle: Some(author.to_string()),
             icon: Some(EntryIcon::HeroIcon("light-bulb".into())),
             keywords: vec!["quote".into(), id.to_string()],
-            actions: vec![Action {
-                id: ActionId::Copy,
-                label: "Copy".into(),
-            }],
+            actions: Actions::new()
+                .primary("Copy", Command::CopyQuote(text.to_string()))
+                .copy(Action::new(Command::CopyQuote(text.to_string()))),
         })
         .collect()
 }
@@ -276,23 +313,25 @@ declares them and the host does the rest.
 
 Each entry needs:
 
-- **`id`** — a unique identifier within this gadget, passed back in `execute()`.
-- **`title`** — the display text, highlighted with match positions by the host.
-- **`subtitle`** — optional secondary text shown below the title.
-- **`icon`** — one of `HeroIcon` (by [Heroicons](https://heroicons.com/)
+- **`id`**: a unique identifier within this gadget. The host uses it to
+  remember which entries the user picks most often.
+- **`title`**: the display text, highlighted with match positions by the host.
+- **`subtitle`**: optional secondary text shown below the title.
+- **`icon`**: one of `HeroIcon` (by [Heroicons](https://heroicons.com/)
   name), `Emoji`, `DataUrl`, or `AssetIcon` (a file bundled in the gadget
   archive).
-- **`keywords`** — additional terms the host matches against. Keyword matches
+- **`keywords`**: additional terms the host matches against. Keyword matches
   score the entry but don't highlight in the title.
-- **`actions`** — the first action is the primary one (activated with
-  <kbd>Enter</kbd>). Well-known [`ActionId`](/development/interfaces/exports/#search)
-  variants like `Copy`, `Open`, and `Reveal` get default keybindings and icons
-  from the host.
+- **`actions`**: the entry's actions in fixed
+  [slots](/development/search/#slots). The slot decides the key: `primary`
+  runs on <kbd>Enter</kbd>, `copy` on <kbd>Cmd</kbd>+<kbd>C</kbd>. Here both
+  slots copy the quote. `.primary()` takes a label, and `Action::new()` in the
+  `copy` slot shows the default label "Copy".
 
 ### Search
 
 ```rust
-fn search(_query: String, _matched_prefix: Option<String>) -> SearchResponse {
+fn search(_query: String, _matched_prefix: Option<String>) -> SearchResponse<Command> {
     SearchResponse::Nothing
 }
 ```
@@ -313,19 +352,22 @@ full details on query mode, prefix routing, and custom UI responses.
 ### Execution
 
 ```rust
-fn execute(entry: ScoredEntry, _action_id: ActionId) -> Result<PostAction, String> {
-    clipboard::write_text(&entry.title)
-        .map_err(|e| format!("clipboard write failed: {e:?}"))?;
+fn execute(command: Command) -> Result<PostAction, String> {
+    match command {
+        Command::CopyQuote(text) => {
+            clipboard::write_text(&text)
+                .map_err(|e| format!("clipboard write failed: {e:?}"))?;
+        }
+    }
 
     Ok(PostAction::Dismiss)
 }
 ```
 
-[`execute()`](/development/interfaces/exports/#search) runs when the user
-activates a result. It receives the full
-[`ScoredEntry`](/development/interfaces/exports/#search), where `entry.id`
-matches what you returned in `entries()`. This example copies the quote text
-to the system clipboard using the
+[`execute()`](/development/interfaces/exports/#execute) runs when the user
+runs an action. It receives the command of that action, exactly the
+`Command::CopyQuote` value you put into the slot in `entries()`. This example
+copies the quote text to the system clipboard using the
 [`clipboard`](/development/interfaces/imports/#clipboard) host import.
 
 `PostAction::Dismiss` closes the launcher after execution. `Nothing` and
