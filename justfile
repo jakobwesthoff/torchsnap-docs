@@ -37,6 +37,10 @@ fmt:
 fmt-check:
     bunx prettier --check .
 
+# Lint all code, including accessibility rules for Astro templates
+lint:
+    bunx eslint .
+
 # The site and the Bun scripts in `tools/` run in different environments
 # (browser vs. Bun), so they are two TypeScript projects: the site's
 # `tsconfig.json` excludes `tools/`, which has its own with Bun's types.
@@ -49,9 +53,10 @@ check:
 # The frozen install comes first so the gates run against the versions
 # in bun.lock, not whatever an older install left in node_modules.
 
-# Run the full quality cycle: install, format check, type check, then build
+# Run the full quality cycle: install, format check, lint, type check, then build
 fullcycle:
     just install
     just fmt-check
+    just lint
     just check
     just build
