@@ -30,9 +30,9 @@ const OPTIONS = [
     ThemeProvider which already read localStorage. */}
 <script is:inline>
   (function () {
-    var stored =
+    const stored =
       typeof localStorage !== "undefined" ? localStorage.getItem("starlight-theme") : null;
-    var pref = stored === "light" || stored === "dark" ? stored : "system";
+    const pref = stored === "light" || stored === "dark" ? stored : "system";
     document.documentElement.dataset.themePreference = pref;
   })();
 </script>
