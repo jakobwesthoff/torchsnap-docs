@@ -1,0 +1,7 @@
+dist/
+.astro/
+bun.lock
+
+# Prose in Markdown and MDX pages is wrapped by hand.
+*.md
+*.mdx

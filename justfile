@@ -29,6 +29,14 @@ build-favicon:
 build-og:
     bun run build:og
 
+# Format all code and config (Markdown and MDX pages are left as written)
+fmt:
+    bunx prettier --write .
+
+# Check formatting without writing
+fmt-check:
+    bunx prettier --check .
+
 # The site and the Bun scripts in `tools/` run in different environments
 # (browser vs. Bun), so they are two TypeScript projects: the site's
 # `tsconfig.json` excludes `tools/`, which has its own with Bun's types.
@@ -41,8 +49,9 @@ check:
 # The frozen install comes first so the gates run against the versions
 # in bun.lock, not whatever an older install left in node_modules.
 
-# Run the full quality cycle: install, type check, then build
+# Run the full quality cycle: install, format check, type check, then build
 fullcycle:
     just install
+    just fmt-check
     just check
     just build
