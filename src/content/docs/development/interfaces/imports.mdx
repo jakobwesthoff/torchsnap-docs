@@ -25,6 +25,7 @@ interface types {
     data-url(string),
     asset-icon(string),
     emoji(string),
+    app-icon(string),
   }
 
   record action {
@@ -45,7 +46,7 @@ interface types {
 
 | Type | Description |
 |---|---|
-| `EntryIcon` | Icon for a search result. `HeroIcon` takes a [Heroicons](https://heroicons.com/) name, `DataUrl` a base64-encoded inline image, `AssetIcon` a path relative to the gadget archive, and `Emoji` a Unicode emoji character. |
+| `EntryIcon` | Icon for a search result. `HeroIcon` takes a [Heroicons](https://heroicons.com/) name, `DataUrl` a base64-encoded inline image, `AssetIcon` a path relative to the gadget archive, `Emoji` a Unicode emoji character, and `AppIcon` a platform application identifier (for example a macOS bundle ID) whose real icon the launcher looks up. `AppIcon` requires the `icon-cache = true` permission and shows the entry without an icon if the application cannot be found. |
 | `Action` | One action on an entry: an optional label and a command. The host stores the command, never inspects it, and hands it back unchanged to `execute()`. Without a label, the launcher shows the slot's default label. |
 | `EntryActions` | The actions of an entry, one optional field per slot. The slot decides the key that runs the action. See [Actions](/development/search/#actions). |
 

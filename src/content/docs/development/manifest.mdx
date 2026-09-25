@@ -221,6 +221,7 @@ doesn't, with no further scoping. All default to `false`.
 | `settings` | Access the gadget's own settings namespace via [`settings`](/development/interfaces/imports/#settings). |
 | `sql-storage` | Use a per-gadget SQLite database via [`sql-storage`](/development/interfaces/imports/#sql-storage). Also requires a [`[storage.sql]`](#sql-storage) section declaring migrations. |
 | `path-resolver` | Resolve substitution variables via [`path-resolver`](/development/interfaces/imports/#path-resolver). |
+| `icon-cache` | Show the real icon of an installed application with the `AppIcon` entry icon. Without this flag, an entry with `AppIcon` is shown without an icon. |
 
 For example, a gadget that copies results to the clipboard, uses frecency for
 its browse mode, and enriches URL results with website titles and favicons

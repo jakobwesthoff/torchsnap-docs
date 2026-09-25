@@ -443,8 +443,12 @@ Each entry can carry an `EntryIcon` for display in the result list:
 | `Emoji(char)` | A single Unicode emoji rendered as text. | `"👋"`, `"🔥"` |
 | `DataUrl(url)` | A base64-encoded inline image. | `"data:image/png;base64,..."` |
 | `AssetIcon(path)` | A file bundled in the gadget archive, relative to the gadget root. | `"assets/icon.svg"` |
+| `AppIcon(id)` | A platform application identifier. The launcher shows that application's real icon. | `"com.if.Amphetamine"` |
 
 `HeroIcon` is the most common choice for gadgets that don't ship custom
 artwork. `AssetIcon` resolves to a file inside the gadget's
 [`.torchsnap` archive](/development/packaging/) (or development directory) and
-is served to the launcher through a custom protocol.
+is served to the launcher through a custom protocol. `AppIcon` needs the
+`icon-cache = true` manifest permission, and the entry shows without an icon
+if the launcher cannot find the application. [Awake](/start/gadgets/awake/)
+uses it to show Amphetamine's own icon.

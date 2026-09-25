@@ -357,20 +357,16 @@ fn entries() -> Vec<CatalogEntry<Command>> {
 
 ### search()
 
-Called on every keystroke with the raw query string. `matched_prefix` is
-`Some("=")` (or whichever prefix) when the gadget claimed a
+Called on every keystroke. `matched_prefix` is `Some("=")` (or whichever
+prefix) when the gadget claimed a
 [prefix](/development/search/#prefix-routing) and the user's input starts with
-it. `None` otherwise. Gadgets that only use catalog mode return
-`SearchResponse::Nothing`.
+it. `None` otherwise. When a prefix matched, the host has already stripped it
+from `query` before calling `search()`, so `query` is ready to evaluate as is.
+Gadgets that only use catalog mode return `SearchResponse::Nothing`.
 
 ```rust
 fn search(query: String, matched_prefix: Option<String>) -> SearchResponse<Command> {
-    let input = match &matched_prefix {
-        Some(prefix) => &query[prefix.len()..],
-        None => &query,
-    };
-
-    match evaluate(input) {
+    match evaluate(&query) {
         Some(result) => SearchResponse::Results(vec![result.to_scored_entry()]),
         None => SearchResponse::Nothing,
     }
