@@ -1,8 +1,7 @@
 # torchsnap-docs: project rules
 
 - Follow `docs/documentation-writing-howto.md` for every page change
-  (writing conventions, page workflow, screenshots, components, commit
-  rules).
+  (writing conventions, page workflow, screenshots, components).
 - Facts come from the torchsnap repo (`../torchsnap`). Verify every
   behavioral claim against its source before writing it.
 - `bun run build` must finish with only the warnings listed in
