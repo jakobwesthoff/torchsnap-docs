@@ -50,6 +50,14 @@ In practice, this means:
   The SDK's Vite plugin redirects these imports to shims that resolve to the
   host's React instance at runtime.
 
+## Render errors
+
+If a view, inline view or settings panel throws while rendering, the host
+shows an error card with your gadget's id and the error message in its place.
+The rest of the window keeps working, and a full-screen view's card offers a
+**Go back** button. The error is logged under your gadget's id, so it shows up
+in the [devtools](/development/devtools/) console.
+
 ## Project setup
 
 A gadget frontend lives in a `frontend/` directory inside the gadget folder.
