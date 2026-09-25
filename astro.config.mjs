@@ -44,9 +44,6 @@ export default defineConfig({
     icon(),
     starlight({
       title: "Torchsnap Docs",
-      logo: {
-        src: "./src/assets/logo.png",
-      },
       favicon: "/favicon-32.png",
       head: [
         {
