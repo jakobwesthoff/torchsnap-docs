@@ -4,10 +4,13 @@
   (writing conventions, page workflow, screenshots, components).
 - Facts come from the torchsnap repo (`../torchsnap`). Verify every
   behavioral claim against its source before writing it.
-- `bun run build` must finish with only the warnings listed in
-  `README.md`, "Expected build warnings". Fix any other warning or error.
+- The `justfile` is the entrypoint for every task. Add new tasks there
+  as recipes.
+- The quality gate is `just fullcycle`. It must pass, and the build must
+  print only the warnings listed in `README.md`, "Expected build
+  warnings". Fix any other warning or error.
 - At the start of a session, before the first change that can affect
-  the build's outcome, run `bun run build` once to get a baseline. If
+  the gate's outcome, run `just fullcycle` once to get a baseline. If
   the baseline already fails, tell the user what fails and propose
   fixing it before starting the other work.
 - The scripts in `tools/` get thorough tests with `bun test` whenever

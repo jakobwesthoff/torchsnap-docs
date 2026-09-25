@@ -6,23 +6,26 @@ with [Starlight](https://starlight.astro.build) on Astro.
 
 ## Requirements
 
+- [just](https://github.com/casey/just). The `justfile` is the
+  entrypoint for every task below. Its recipes call the Bun scripts from
+  `package.json`, and `just --list` shows them all.
 - [Bun](https://bun.sh) as the package manager and script runner.
   `bun.lock` is the committed lockfile.
 - Node.js 22.12 or newer. `bun run` starts the Astro CLI, and the CLI
   runs on Node. Astro 7 requires at least that version.
 - [oxipng](https://github.com/shssoichiro/oxipng) on your `PATH` if you
-  regenerate the favicons or the social card. `build:favicon` and
-  `build:og` fail without it.
+  regenerate the favicons or the social card. `build-favicon` and
+  `build-og` fail without it.
 
 ## Development
 
 ```sh
-bun install
-bun run dev
+just install
+just dev
 ```
 
-The dev server listens on <http://localhost:4321>. `bun run start` is an
-alias for `bun run dev`. The dev server also accepts requests through
+The dev server listens on <http://localhost:4321>. It also accepts
+requests through
 `*.trycloudflare.com` hosts, so
 `cloudflared tunnel --url http://localhost:4321` exposes it publicly.
 
@@ -34,13 +37,18 @@ and structure pages.
 ## Building
 
 ```sh
-bun install --frozen-lockfile
-bun run build
-bun run preview
+just install
+just build
+just preview
 ```
 
-`bun run build` writes the static site to `dist/`, and `bun run preview`
-serves that folder on <http://localhost:4321>.
+`just install` installs exactly the versions in `bun.lock`. `just build`
+writes the static site to `dist/`, and `just preview` serves that folder
+on <http://localhost:4321>.
+
+`just fullcycle` is the quality gate: it installs, runs every check and
+builds the site. It must pass before every push, and the deploy workflow
+runs it as well.
 
 The build output contains:
 
@@ -79,12 +87,12 @@ The build prints warnings that need no action:
 
 ## Generated assets
 
-`bun run build:favicon` generates `favicon.ico`, `favicon-32.png`,
+`just build-favicon` generates `favicon.ico`, `favicon-32.png`,
 `apple-touch-icon.png`, `icon-192.png`, and `icon-192-maskable.png` in
 `public/` from `src/assets/mascot-reading-1024.png`. The files are committed.
 Regenerate them only when the mascot changes, and commit the results.
 
-`bun run build:og` generates `public/og.png`, the social card that link
+`just build-og` generates `public/og.png`, the social card that link
 previews show for every page. It is committed as well. The card is the
 docs variant of the torchsnap.app card from `web/tools/build-og.tsx` in
 the torchsnap-web repository. A design change to one card usually
@@ -93,17 +101,17 @@ needs the same change in the other.
 ## Releasing
 
 The site is published with GitHub Pages under the custom domain
-`docs.torchsnap.app` (ADR 0002 in `docs/adr/`). The workflow `.github/workflows/deploy.yml` builds
-the site on every push to `main`, on pull requests, and on manual runs.
-It deploys `dist/` only from `main`, and only while the repository is
-public. A private repository gets the build as CI and no deployment.
+`docs.torchsnap.app` (ADR 0002 in `docs/adr/`). The workflow
+`.github/workflows/deploy.yml` runs `just fullcycle` on every push to
+`main`, on pull requests, and on manual runs. It deploys `dist/` only
+from `main`, and only while the repository is public. A private
+repository gets the checks and the build as CI and no deployment.
 
 Before pushing a change to `main`:
 
-1. Run `bun install --frozen-lockfile`.
-2. Run `bun run build` and confirm it finishes with only the expected
-   warnings listed above.
-3. Run `bun run preview` and check the pages you changed, the search
+1. Run `just fullcycle` and confirm it passes and the build prints only
+   the expected warnings listed above.
+2. Run `just preview` and check the pages you changed, the search
    dialog, and the light and dark themes in a browser.
 
 The first deployment needs these repository settings:

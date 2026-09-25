@@ -1,6 +1,7 @@
 name: Deploy
 
-# Builds the site on every push and pull request, and publishes it to
+# Runs the full quality cycle (`just fullcycle`, which ends with the site
+# build) on every push and pull request, and publishes the site to
 # GitHub Pages from `main`. The Pages site serves https://docs.torchsnap.app
 # through the custom domain set in the repository's Pages settings.
 
@@ -33,9 +34,11 @@ jobs:
         with:
           node-version: lts/*
 
-      - run: bun install --frozen-lockfile
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: just
 
-      - run: bun run build
+      - run: just fullcycle
 
       - uses: actions/upload-pages-artifact@v5
         with:

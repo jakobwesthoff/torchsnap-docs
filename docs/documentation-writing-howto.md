@@ -56,7 +56,7 @@ File paths mirror the sidebar hierarchy. Each section's landing page is an
    against the Torchsnap source code. Do not rely on architecture docs or
    prior knowledge alone; the code may have changed. Grep for the function,
    read the implementation, confirm the claim.
-9. **Build continuously** — run `npx astro build` after every meaningful
+9. **Build continuously** — run `just build` after every meaningful
    change, not just once at the end. MDX parsing issues (`${...}` as JSX,
    `<...>` as elements) and broken links surface only at build time.
 10. **Create cross-repo todos when docs reveal debt** — if documenting current
