@@ -61,10 +61,12 @@ File paths mirror the sidebar hierarchy. Each section's landing page is an
    `<...>` as elements) and broken links surface only at build time.
 10. **Create cross-repo todos when docs reveal debt** — if documenting current
    behavior reveals a design flaw, missing feature, or inconsistency, create
-   a todo in `../torchsnap/todos/` describing what should change. Don't block
-   the docs on the fix; document current behavior accurately and add a visible
-   TODO aside linking to the planned change.
-11. **Remove the todo** — `git rm todos/<file>`.
+   a todo in `../torchsnap/todos/` describing what should change, in the
+   format of `../torchsnap/todos/README.md`. Don't block the docs on the fix;
+   document current behavior accurately and add a visible TODO aside linking
+   to the planned change.
+11. **Close the todo** — delete its file and every reference to it, as
+   `todos/README.md`, "Closing a todo", describes.
 12. **Commit** — follow the project's git commit conventions.
 
 ## Writing conventions
