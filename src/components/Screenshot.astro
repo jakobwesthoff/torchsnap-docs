@@ -1,5 +1,5 @@
 ---
-import { Image } from 'astro:assets';
+import { Image } from "astro:assets";
 
 interface Props {
   dark: ImageMetadata;
@@ -18,8 +18,22 @@ const style = maxWidth ? `max-width: ${maxWidth}` : undefined;
 ---
 
 <div class="screenshot" {style}>
-  <Image src={dark} alt={alt} class="only-dark" width={darkDisplayWidth} height={darkDisplayHeight} densities={[1, 2]} />
-  <Image src={light} alt={alt} class="only-light" width={lightDisplayWidth} height={lightDisplayHeight} densities={[1, 2]} />
+  <Image
+    src={dark}
+    alt={alt}
+    class="only-dark"
+    width={darkDisplayWidth}
+    height={darkDisplayHeight}
+    densities={[1, 2]}
+  />
+  <Image
+    src={light}
+    alt={alt}
+    class="only-light"
+    width={lightDisplayWidth}
+    height={lightDisplayHeight}
+    densities={[1, 2]}
+  />
 </div>
 
 <style>

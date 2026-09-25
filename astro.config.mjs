@@ -128,8 +128,7 @@ export default defineConfig({
           customSets: [
             {
               label: "User Guide",
-              description:
-                "installation, configuration, keyboard shortcuts, and built-in gadgets",
+              description: "installation, configuration, keyboard shortcuts, and built-in gadgets",
               paths: ["start/**"],
             },
             {
@@ -146,26 +145,22 @@ export default defineConfig({
             },
             {
               label: "Gadget Frontend",
-              description:
-                "React-based views, settings panels, and frontend-to-backend messaging",
+              description: "React-based views, settings panels, and frontend-to-backend messaging",
               paths: ["development/frontend/**"],
             },
             {
               label: "Packaging",
-              description:
-                "packaging gadgets for distribution and use outside development",
+              description: "packaging gadgets for distribution and use outside development",
               paths: ["development/packaging"],
             },
             {
               label: "Devtools",
-              description:
-                "the devtools panel for gadget debugging and logging",
+              description: "the devtools panel for gadget debugging and logging",
               paths: ["development/devtools"],
             },
             {
               label: "Control API",
-              description:
-                "JSON-RPC automation over a Unix domain socket",
+              description: "JSON-RPC automation over a Unix domain socket",
               paths: ["control-api/**"],
             },
           ],

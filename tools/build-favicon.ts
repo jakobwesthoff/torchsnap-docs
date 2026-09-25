@@ -85,15 +85,8 @@ async function prepareMascot(): Promise<Buffer> {
 // Output generators
 // =========================================================
 
-async function writeTransparent(
-  mascot: Buffer,
-  size: number,
-  outPath: string,
-): Promise<void> {
-  await sharp(mascot)
-    .resize(size, size)
-    .png({ compressionLevel: 9 })
-    .toFile(outPath);
+async function writeTransparent(mascot: Buffer, size: number, outPath: string): Promise<void> {
+  await sharp(mascot).resize(size, size).png({ compressionLevel: 9 }).toFile(outPath);
 }
 
 // The mascot is scaled to fill ~75 % of the canvas so it sits
@@ -101,11 +94,7 @@ async function writeTransparent(
 // adaptive-icon safe zone (~66 % inner circle).
 const MASCOT_FILL = 0.75;
 
-async function writeGradientIcon(
-  mascot: Buffer,
-  size: number,
-  outPath: string,
-): Promise<void> {
+async function writeGradientIcon(mascot: Buffer, size: number, outPath: string): Promise<void> {
   const mascotSize = Math.round(size * MASCOT_FILL);
   const resized = await sharp(mascot).resize(mascotSize, mascotSize).toBuffer();
   const offset = Math.round((size - mascotSize) / 2);

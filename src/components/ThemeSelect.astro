@@ -8,27 +8,21 @@ const OPTIONS = [
 ] as const;
 ---
 
-<div
-  class="theme-toggle"
-  role="radiogroup"
-  aria-label="Theme"
->
+<div class="theme-toggle" role="radiogroup" aria-label="Theme">
   <div class="theme-toggle-pill"></div>
 
-  {
-    OPTIONS.map(({ value, icon, label }) => (
-      <button
-        type="button"
-        role="radio"
-        data-value={value}
-        aria-label={label}
-        aria-checked="false"
-        class="theme-toggle-option"
-      >
-        <Icon name={icon} />
-      </button>
-    ))
-  }
+  {OPTIONS.map(({ value, icon, label }) => (
+    <button
+      type="button"
+      role="radio"
+      data-value={value}
+      aria-label={label}
+      aria-checked="false"
+      class="theme-toggle-option"
+    >
+      <Icon name={icon} />
+    </button>
+  ))}
 </div>
 
 {/* Stamp data-theme-preference before first paint so the pill CSS
@@ -36,9 +30,8 @@ const OPTIONS = [
     ThemeProvider which already read localStorage. */}
 <script is:inline>
   (function () {
-    var stored = typeof localStorage !== "undefined"
-      ? localStorage.getItem("starlight-theme")
-      : null;
+    var stored =
+      typeof localStorage !== "undefined" ? localStorage.getItem("starlight-theme") : null;
     var pref = stored === "light" || stored === "dark" ? stored : "system";
     document.documentElement.dataset.themePreference = pref;
   })();

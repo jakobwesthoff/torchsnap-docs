@@ -11,9 +11,7 @@ const ORDER: ThemePreference[] = ["system", "light", "dark"];
 export function initThemeToggle(): void {
   document.querySelectorAll<HTMLElement>(".theme-toggle").forEach((root) => {
     const buttons = Array.from(
-      root.querySelectorAll<HTMLButtonElement>(
-        "button[role='radio'][data-value]",
-      ),
+      root.querySelectorAll<HTMLButtonElement>("button[role='radio'][data-value]"),
     );
     if (buttons.length === 0) return;
 
@@ -44,10 +42,7 @@ export function initThemeToggle(): void {
 
     const initial = readPreference();
     for (const btn of buttons) {
-      btn.setAttribute(
-        "aria-checked",
-        String(btn.dataset.value === initial),
-      );
+      btn.setAttribute("aria-checked", String(btn.dataset.value === initial));
     }
     if (initial === "system") attachSystemListener();
 

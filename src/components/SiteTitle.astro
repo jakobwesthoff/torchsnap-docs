@@ -1,45 +1,37 @@
 ---
 // Starlight's `logo` option is left unset: this override imports the
 // logo itself so `astro:assets` renders it at 1x, 2x and 3x densities.
-import { Image } from 'astro:assets';
-import logo from '../assets/logo.png';
+import { Image } from "astro:assets";
+import logo from "../assets/logo.png";
 const { siteTitle, siteTitleHref } = Astro.locals.starlightRoute;
 ---
 
 <a href={siteTitleHref} class="site-title sl-flex">
-	<Image
-		alt=""
-		src={logo}
-		height={26}
-		densities={[1, 2, 3]}
-		loading="eager"
-	/>
-	<span translate="no">
-		{siteTitle}
-	</span>
+  <Image alt="" src={logo} height={26} densities={[1, 2, 3]} loading="eager" />
+  <span translate="no">{siteTitle}</span>
 </a>
 
 <style>
-	@layer starlight.core {
-		.site-title {
-			align-items: center;
-			gap: var(--sl-nav-gap);
-			font-size: var(--sl-text-h4);
-			font-weight: 600;
-			color: var(--sl-color-text-accent);
-			text-decoration: none;
-			white-space: nowrap;
-			min-width: 0;
-		}
-		span {
-			overflow: hidden;
-		}
-		img {
-			height: auto;
-			width: auto;
-			max-height: 26px;
-			object-fit: contain;
-			object-position: 0 50%;
-		}
-	}
+  @layer starlight.core {
+    .site-title {
+      align-items: center;
+      gap: var(--sl-nav-gap);
+      font-size: var(--sl-text-h4);
+      font-weight: 600;
+      color: var(--sl-color-text-accent);
+      text-decoration: none;
+      white-space: nowrap;
+      min-width: 0;
+    }
+    span {
+      overflow: hidden;
+    }
+    img {
+      height: auto;
+      width: auto;
+      max-height: 26px;
+      object-fit: contain;
+      object-position: 0 50%;
+    }
+  }
 </style>

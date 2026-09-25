@@ -136,7 +136,12 @@ const tree = (
       backgroundColor: SURFACE,
     }}
   >
-    <img src={mascotDataUrl} width={mascotW} height={MASCOT_HEIGHT} style={{ display: "block", marginBottom: 28 }} />
+    <img
+      src={mascotDataUrl}
+      width={mascotW}
+      height={MASCOT_HEIGHT}
+      style={{ display: "block", marginBottom: 28 }}
+    />
     <div
       style={{
         fontSize: EYEBROW_FONT,

@@ -39,23 +39,23 @@ const year = new Date().getFullYear();
           />
           <span class="brand-name">Torchsnap</span>
         </a>
-        <span class="separator" aria-hidden="true">&middot;</span>
+        <span class="separator" aria-hidden="true">
+          &middot;
+        </span>
         <span>&copy; {year}</span>
       </div>
 
       <nav class="site-footer-nav" aria-label="Footer">
-        {
-          FOOTER_LINKS.map((link) => (
-            <a
-              href={link.href}
-              class="footer-link"
-              target={link.external ? "_blank" : undefined}
-              rel={link.external ? "noopener noreferrer" : undefined}
-            >
-              {link.label}
-            </a>
-          ))
-        }
+        {FOOTER_LINKS.map((link) => (
+          <a
+            href={link.href}
+            class="footer-link"
+            target={link.external ? "_blank" : undefined}
+            rel={link.external ? "noopener noreferrer" : undefined}
+          >
+            {link.label}
+          </a>
+        ))}
       </nav>
     </div>
   </div>

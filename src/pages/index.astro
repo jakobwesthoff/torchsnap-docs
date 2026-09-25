@@ -1,13 +1,7 @@
 ---
 import { Image } from "astro:assets";
 import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
-import {
-  Card,
-  CardGrid,
-  LinkButton,
-  Tabs,
-  TabItem,
-} from "@astrojs/starlight/components";
+import { Card, CardGrid, LinkButton, Tabs, TabItem } from "@astrojs/starlight/components";
 import PlatformBadge from "../components/PlatformBadge.astro";
 import logo from "../assets/logo.png";
 ---
@@ -23,9 +17,7 @@ import logo from "../assets/logo.png";
   }}
 >
   {/* ========== Hero ========== */}
-  <div
-    class="not-content flex flex-col items-center gap-10 p-4 min-[50rem]:grid min-[50rem]:grid-cols-[auto_auto] min-[50rem]:justify-center min-[50rem]:items-center min-[50rem]:gap-20 min-[50rem]:px-32 min-[50rem]:py-[clamp(2.5rem,calc(1rem+10vmin),10rem)]"
-  >
+  <div class="not-content flex flex-col items-center gap-10 p-4 min-[50rem]:grid min-[50rem]:grid-cols-[auto_auto] min-[50rem]:justify-center min-[50rem]:items-center min-[50rem]:gap-20 min-[50rem]:px-32 min-[50rem]:py-[clamp(2.5rem,calc(1rem+10vmin),10rem)]">
     <Image
       src={logo}
       alt=""
@@ -35,43 +27,23 @@ import logo from "../assets/logo.png";
       decoding="async"
       class="object-contain w-48 min-w-48 h-auto mx-auto shrink-0 min-[50rem]:order-2"
     />
-    <div
-      class="flex flex-col gap-[clamp(1.5rem,calc(1.5rem+1vw),2rem)] text-center min-[50rem]:text-start"
-    >
+    <div class="flex flex-col gap-[clamp(1.5rem,calc(1.5rem+1vw),2rem)] text-center min-[50rem]:text-start">
       <div class="flex flex-col gap-4 items-center min-[50rem]:items-start">
-        <h1
-          class="font-bold tracking-tight text-[length:var(--sl-text-5xl)] leading-[var(--sl-line-height-headings)] text-[color:var(--sl-color-white)]"
-        >
-          Torch<span
-            class="text-[color:var(--sl-color-accent-high)]"
-            >snap</span
-          >
+        <h1 class="font-bold tracking-tight text-[length:var(--sl-text-5xl)] leading-[var(--sl-line-height-headings)] text-[color:var(--sl-color-white)]">
+          Torch<span class="text-[color:var(--sl-color-accent-high)]">snap</span>
         </h1>
-        <div
-          class="text-[length:clamp(var(--sl-text-base),calc(0.0625rem+2vw),var(--sl-text-xl))] text-[color:var(--sl-color-gray-2)]"
-        >
-          <span
-            class="block mb-3 text-sm font-bold uppercase tracking-[0.2em] text-[color:var(--sl-color-accent-high)] dark:text-orange-500"
-            >Light · Find · Launch</span
-          >
-          Set up and use the Torchsnap launcher, or build your own gadgets with
-          the Gadget SDK.
+        <div class="text-[length:clamp(var(--sl-text-base),calc(0.0625rem+2vw),var(--sl-text-xl))] text-[color:var(--sl-color-gray-2)]">
+          <span class="block mb-3 text-sm font-bold uppercase tracking-[0.2em] text-[color:var(--sl-color-accent-high)] dark:text-orange-500">
+            Light · Find · Launch
+          </span>
+          Set up and use the Torchsnap launcher, or build your own gadgets with the Gadget SDK.
         </div>
       </div>
-      <div
-        class="flex flex-wrap gap-x-8 gap-y-4 justify-center min-[50rem]:justify-start"
-      >
-        <LinkButton
-          href="/start/"
-          variant="primary"
-          icon="right-arrow"
-        >
+      <div class="flex flex-wrap gap-x-8 gap-y-4 justify-center min-[50rem]:justify-start">
+        <LinkButton href="/start/" variant="primary" icon="right-arrow">
           Get Started
         </LinkButton>
-        <LinkButton
-          href="/development/"
-          variant="minimal"
-        >
+        <LinkButton href="/development/" variant="minimal">
           Gadget SDK
         </LinkButton>
       </div>
@@ -82,26 +54,24 @@ import logo from "../assets/logo.png";
   <div class="sl-markdown-content">
     <h2>What is Torchsnap?</h2>
     <p>
-      Torchsnap is a keyboard-driven application launcher for macOS. A single
-      shortcut opens a compact search bar that finds and launches applications,
-      runs system commands, manages your clipboard history, and more. For a
-      tour of what it looks like, visit <a href="https://torchsnap.app"
-        >torchsnap.app</a
-      >.
+      Torchsnap is a keyboard-driven application launcher for macOS. A single shortcut opens a
+      compact search bar that finds and launches applications, runs system commands, manages your
+      clipboard history, and more. For a tour of what it looks like, visit{" "}
+      <a href="https://torchsnap.app">torchsnap.app</a>.
     </p>
     <p>
-      What makes it different is its gadget system. Gadgets are sandboxed
-      WebAssembly plugins that extend what the launcher can do, from a
-      calculator and emoji picker to custom integrations you build yourself. Each
-      gadget runs in its own sandbox with a deny-by-default permission model, so
-      nothing gets access it didn't ask for.
+      What makes it different is its gadget system. Gadgets are sandboxed WebAssembly plugins that
+      extend what the launcher can do, from a calculator and emoji picker to custom integrations you
+      build yourself. Each gadget runs in its own sandbox with a deny-by-default permission model,
+      so nothing gets access it didn't ask for.
     </p>
     <p>
-      Torchsnap is open source under the <a
-        href="https://www.mozilla.org/en-US/MPL/2.0/">MPL-2.0</a
-      > license.
+      Torchsnap is open source under the{" "}
+      <a href="https://www.mozilla.org/en-US/MPL/2.0/">MPL-2.0</a> license.
     </p>
-    <p><strong>No account required. No telemetry. Free forever.</strong></p>
+    <p>
+      <strong>No account required. No telemetry. Free forever.</strong>
+    </p>
 
     <h2>Install</h2>
     <div class="not-content flex flex-wrap gap-2 mb-4">
@@ -112,8 +82,8 @@ import logo from "../assets/logo.png";
     <Tabs>
       <TabItem label="DMG Download">
         <p>
-          Download the latest <code>.dmg</code> from GitHub Releases and drag
-          Torchsnap into your Applications folder.
+          Download the latest <code>.dmg</code> from GitHub Releases and drag Torchsnap into your
+          Applications folder.
         </p>
         <p>
           <LinkButton
@@ -125,8 +95,8 @@ import logo from "../assets/logo.png";
           </LinkButton>
         </p>
         <p>
-          Torchsnap is not yet code-signed. macOS will ask you to explicitly
-          allow it on first launch.
+          Torchsnap is not yet code-signed. macOS will ask you to explicitly allow it on first
+          launch.
           <a href="/start/installation/">Learn how →</a>
         </p>
       </TabItem>
@@ -144,8 +114,8 @@ import logo from "../assets/logo.png";
         <a href="/start/">Get started →</a>
       </Card>
       <Card title="Gadget SDK" icon="puzzle">
-        Build your own gadgets with Rust and WebAssembly. Backend APIs, custom
-        frontend views, manifest reference, and tutorials.
+        Build your own gadgets with Rust and WebAssembly. Backend APIs, custom frontend views,
+        manifest reference, and tutorials.
         <a href="/development/">Start building →</a>
       </Card>
     </CardGrid>

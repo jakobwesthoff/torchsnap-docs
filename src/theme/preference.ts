@@ -19,9 +19,7 @@ export function writePreference(value: ThemePreference): void {
 
 export function resolvePreference(preference: ThemePreference): ResolvedTheme {
   if (preference === "system") {
-    return window.matchMedia("(prefers-color-scheme: dark)").matches
-      ? "dark"
-      : "light";
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   }
   return preference;
 }
