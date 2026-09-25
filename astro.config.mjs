@@ -87,14 +87,14 @@ export default defineConfig({
           ["og:image:height", "630"],
           ["og:image:alt", "Snappy the owl reading a book above the Torchsnap Docs wordmark"],
         ].map(([property, content]) => ({
-          tag: "meta",
+          tag: /** @type {const} */ ("meta"),
           attrs: { property, content },
         })),
         ...[
           ["twitter:image", "https://docs.torchsnap.app/og.png"],
           ["twitter:image:alt", "Snappy the owl reading a book above the Torchsnap Docs wordmark"],
         ].map(([name, content]) => ({
-          tag: "meta",
+          tag: /** @type {const} */ ("meta"),
           attrs: { name, content },
         })),
       ],

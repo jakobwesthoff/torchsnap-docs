@@ -50,6 +50,18 @@ function jsx(type: string, props: Record<string, unknown> | null, ...children: u
   };
 }
 
+// TypeScript looks up the JSX types on the classic factory's namespace
+// before the global one, so declaring them here keeps them out of every
+// other file. Satori takes any HTML tag with arbitrary props.
+declare namespace jsx {
+  namespace JSX {
+    type Element = ReturnType<typeof jsx>;
+    interface IntrinsicElements {
+      [tag: string]: Record<string, unknown>;
+    }
+  }
+}
+
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = resolve(HERE, "..");
 const FONT_SEMIBOLD_PATH = resolve(HERE, "fonts/Inter-SemiBold.ttf");

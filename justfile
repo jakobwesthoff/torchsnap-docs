@@ -29,10 +29,20 @@ build-favicon:
 build-og:
     bun run build:og
 
+# The site and the Bun scripts in `tools/` run in different environments
+# (browser vs. Bun), so they are two TypeScript projects: the site's
+# `tsconfig.json` excludes `tools/`, which has its own with Bun's types.
+
+# Type-check the site (astro check) and the scripts in tools/ (tsc)
+check:
+    bun run astro check
+    bunx tsc -p tools
+
 # The frozen install comes first so the gates run against the versions
 # in bun.lock, not whatever an older install left in node_modules.
 
-# Run the full quality cycle: install, then build
+# Run the full quality cycle: install, type check, then build
 fullcycle:
     just install
+    just check
     just build
