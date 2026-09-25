@@ -186,7 +186,7 @@ interface search {
     inline-ui(view-response),
   }
 
-  enum post-action { nothing, dismiss, keep-open }
+  enum post-action { nothing, dismiss, keep-open, open-settings }
 
   entries: func() -> list<catalog-entry>;
   search: func(query: string, matched-prefix: option<string>) -> search-response;

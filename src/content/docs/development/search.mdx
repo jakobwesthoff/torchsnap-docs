@@ -305,6 +305,7 @@ open so the user can try again.
 | `Dismiss` | Hide the launcher (same as pressing <kbd>Escape</kbd>). |
 | `Nothing` | Leave the launcher as-is. |
 | `KeepOpen` | Same as `Nothing`. Exists as a semantic signal for multi-select workflows. |
+| `OpenSettings` | Hide the launcher and open the Settings window on this gadget's section. A gadget without a settings section of its own gets the Gadgets page. |
 
 ## Actions
 
@@ -355,28 +356,27 @@ consistently with the rest of the launcher:
 | `Reveal` | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> | Show a file in the OS file manager. |
 | `OpenWith` | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> | Open with an alternative handler. |
 | `Delete` | <kbd>Cmd</kbd>+<kbd>Backspace</kbd> | Remove the entry (e.g. delete a clipboard history item). |
-| `OpenSettings` | <kbd>Cmd</kbd>+<kbd>,</kbd> | Jump to this gadget's settings panel. |
+| `OpenSettings` | <kbd>Cmd</kbd>+<kbd>,</kbd> | Open this gadget's settings. |
 
 Choose the variant that matches the semantic intent of your action. The host
 does not enforce what the action actually does in `execute()`, but using the
 matching variant means users get the keyboard shortcut they expect.
 
-{/* TODO: Update this aside once OpenSettings is passed through to execute()
-    and a PostAction::OpenSettings variant exists. */}
+### Opening your settings
 
-<Aside type="caution" title="Technical debt: OpenSettings">
-  `OpenSettings` currently behaves differently from the other well-known
-  variants: the host intercepts it before it reaches your `execute()` function.
-  The gadget never sees the action. The host opens the settings panel scoped to
-  the gadget that produced the entry and dismisses the launcher automatically.
-  This makes it useful for synthetic entries like "API token missing —
-  configure gadget," where you can guide users to configuration without
-  building any navigation yourself.
+The host passes `OpenSettings` to `execute()` like every other action. To open
+the Settings window on your gadget's section, return `PostAction::OpenSettings`.
+This suits entries like "API token missing", where the fix is a field in your
+settings:
 
-  This behavior will change in a future version. `OpenSettings` will be passed
-  through to `execute()` like every other action, and a new `PostAction`
-  variant will let the gadget trigger the settings navigation explicitly.
-</Aside>
+```rust
+fn execute(entry: ScoredEntry, action_id: ActionId) -> Result<PostAction, String> {
+    match action_id {
+        ActionId::OpenSettings => Ok(PostAction::OpenSettings),
+        _ => Ok(PostAction::Nothing),
+    }
+}
+```
 
 ### Custom actions
 
