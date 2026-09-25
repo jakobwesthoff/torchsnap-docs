@@ -58,6 +58,10 @@ The rest of the window keeps working, and a full-screen view's card offers a
 **Go back** button. The error is logged under your gadget's id, so it shows up
 in the [devtools](/development/devtools/) console.
 
+The same card appears when `manifest.toml` names a view or settings component
+that your bundle does not export. Its message names the bundle and the missing
+export, for example `gadget weather: bundle … has no export "Forcast"`.
+
 ## Project setup
 
 A gadget frontend lives in a `frontend/` directory inside the gadget folder.
