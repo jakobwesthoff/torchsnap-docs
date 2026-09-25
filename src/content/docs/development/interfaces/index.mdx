@@ -22,6 +22,12 @@ calls and reaches back into the host. Both sides agree on the same types, the
 same function signatures, and the same error variants because they are generated
 from the same file.
 
+<Aside type="caution" title="Breaking changes before 1.0.0">
+  The WIT contract can still change in incompatible ways until the Torchsnap
+  1.0.0 release. When it changes, you may need to update your gadget's code
+  and rebuild it against the new SDK.
+</Aside>
+
 This page covers the WIT syntax itself and how bindings are generated from the
 contract. If you are already familiar with WIT and want to jump straight to the
 available APIs, see the [Imports](/development/interfaces/imports/) and

@@ -5,13 +5,21 @@ sidebar:
   order: 0
 ---
 
-import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+import { Aside, CardGrid, LinkCard } from '@astrojs/starlight/components';
 
 Torchsnap is extensible through **gadgets**: sandboxed WebAssembly components
 that plug into the launcher's search pipeline. A gadget can provide search
 results, render custom UI inside the launcher, store data in a local SQLite
 database, make HTTP requests, and run system commands. All of this runs within
 a permission sandbox controlled by the gadget's [manifest](/development/manifest/).
+
+<Aside type="caution" title="Breaking changes before 1.0.0">
+  The gadget API can still change in incompatible ways until the Torchsnap
+  1.0.0 release. This applies to the [WIT contract](/development/interfaces/),
+  the `torchsnap-gadget-sdk` Rust crate, and the `@torchsnap/gadget-sdk`
+  TypeScript package. When the API changes, you may need to update your
+  gadget's code and rebuild it against the new SDK.
+</Aside>
 
 ## How gadgets work
 
