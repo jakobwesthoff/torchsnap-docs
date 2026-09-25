@@ -5,7 +5,7 @@ import tseslint from "typescript-eslint";
 import { defineConfig, globalIgnores } from "eslint/config";
 
 export default defineConfig([
-  globalIgnores(["dist", ".astro"]),
+  globalIgnores(["dist", ".astro", "coverage"]),
   js.configs.recommended,
   tseslint.configs.recommended,
   astro.configs.recommended,
@@ -29,7 +29,7 @@ export default defineConfig([
   {
     files: ["*.{js,mjs,ts}", "tools/**"],
     languageOptions: {
-      globals: { ...globals.node, Bun: "readonly" },
+      globals: globals.node,
     },
   },
   // The OG card uses classic-runtime JSX with its own `jsx` factory. The
@@ -37,7 +37,7 @@ export default defineConfig([
   // it, and TypeScript finds the factory's JSX types only in a
   // `declare namespace`.
   {
-    files: ["tools/build-og.tsx"],
+    files: ["tools/build-og.tsx", "tools/build-og.test.tsx"],
     languageOptions: {
       parserOptions: { jsxPragma: "jsx" },
     },

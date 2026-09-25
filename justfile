@@ -43,20 +43,29 @@ lint:
 
 # The site and the Bun scripts in `tools/` run in different environments
 # (browser vs. Bun), so they are two TypeScript projects: the site's
-# `tsconfig.json` excludes `tools/`, which has its own with Bun's types.
+# `tsconfig.json` excludes `tools/`, which has its own with Node's types.
 
 # Type-check the site (astro check) and the scripts in tools/ (tsc)
 check:
     bun run astro check
     bunx tsc -p tools
 
+# Run all tests (the site's modules and the scripts in tools/)
+test:
+    bunx vitest run
+
+# Run all tests and report coverage per file
+test-coverage:
+    bunx vitest run --coverage
+
 # The frozen install comes first so the gates run against the versions
 # in bun.lock, not whatever an older install left in node_modules.
 
-# Run the full quality cycle: install, format check, lint, type check, then build
+# Run the full quality cycle: install, format check, lint, type check, test, then build
 fullcycle:
     just install
     just fmt-check
     just lint
     just check
+    just test
     just build

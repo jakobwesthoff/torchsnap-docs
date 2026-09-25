@@ -39,7 +39,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
 
-function jsx(type: string, props: Record<string, unknown> | null, ...children: unknown[]) {
+export function jsx(type: string, props: Record<string, unknown> | null, ...children: unknown[]) {
   const flat = children.flat(Infinity);
   return {
     type,
@@ -53,7 +53,7 @@ function jsx(type: string, props: Record<string, unknown> | null, ...children: u
 // TypeScript looks up the JSX types on the classic factory's namespace
 // before the global one, so declaring them here keeps them out of every
 // other file. Satori takes any HTML tag with arbitrary props.
-declare namespace jsx {
+export declare namespace jsx {
   namespace JSX {
     type Element = ReturnType<typeof jsx>;
     interface IntrinsicElements {
@@ -79,119 +79,139 @@ const SURFACE = "#1c1c1e";
 const TOP = "#f87316";
 const BOT = "#da7707";
 
-// =========================================================
-// Assets
-// =========================================================
+export interface CardAssets {
+  semibold: Buffer;
+  bold: Buffer;
+  mascotPng: Buffer;
+}
 
-// The mascot master carries transparent padding. Satori lays out the
-// image box, not the visible figure, so the padding is trimmed here to
-// make the layout box match the owl.
-const trimmed = await sharp(MASCOT_PATH)
-  .trim({ background: { r: 0, g: 0, b: 0, alpha: 0 }, threshold: 0 })
-  .png()
-  .toBuffer({ resolveWithObject: true });
-const mascotDataUrl = `data:image/png;base64,${trimmed.data.toString("base64")}`;
-const MASCOT_NATIVE_W = trimmed.info.width;
-const MASCOT_NATIVE_H = trimmed.info.height;
+export async function renderCard({ semibold, bold, mascotPng }: CardAssets): Promise<Buffer> {
+  // =========================================================
+  // Assets
+  // =========================================================
 
-const [semibold, bold] = await Promise.all([
-  readFile(FONT_SEMIBOLD_PATH),
-  readFile(FONT_BOLD_PATH),
-]);
+  // The mascot master carries transparent padding. Satori lays out the
+  // image box, not the visible figure, so the padding is trimmed here to
+  // make the layout box match the owl.
+  const trimmed = await sharp(mascotPng)
+    .trim({ background: { r: 0, g: 0, b: 0, alpha: 0 }, threshold: 0 })
+    .png()
+    .toBuffer({ resolveWithObject: true });
+  const mascotDataUrl = `data:image/png;base64,${trimmed.data.toString("base64")}`;
+  const MASCOT_NATIVE_W = trimmed.info.width;
+  const MASCOT_NATIVE_H = trimmed.info.height;
 
-// =========================================================
-// Layout
-// =========================================================
+  // =========================================================
+  // Layout
+  // =========================================================
 
-// Slack shows link-card images in a square slot and centre-crops the
-// 1200×630 card to its middle 630×630. Owl, eyebrow and wordmark are
-// therefore stacked vertically and sized so the whole group fits that
-// square with about 50 px to spare on every side. Wider platforms (X,
-// LinkedIn, Discord) show the full card with the same group centred.
-//
-// The wordmark sets the width limit: at 70 px "Torchsnap Docs" is
-// about 526 px wide. The eyebrow stays at 26 px rather than matching
-// the wordmark's width, which would need ~36 px and outweigh it.
-const MASCOT_HEIGHT = 380;
-const mascotW = Math.round(MASCOT_HEIGHT * (MASCOT_NATIVE_W / MASCOT_NATIVE_H));
+  // Slack shows link-card images in a square slot and centre-crops the
+  // 1200×630 card to its middle 630×630. Owl, eyebrow and wordmark are
+  // therefore stacked vertically and sized so the whole group fits that
+  // square with about 50 px to spare on every side. Wider platforms (X,
+  // LinkedIn, Discord) show the full card with the same group centred.
+  //
+  // The wordmark sets the width limit: at 70 px "Torchsnap Docs" is
+  // about 526 px wide. The eyebrow stays at 26 px rather than matching
+  // the wordmark's width, which would need ~36 px and outweigh it.
+  const MASCOT_HEIGHT = 380;
+  const mascotW = Math.round(MASCOT_HEIGHT * (MASCOT_NATIVE_W / MASCOT_NATIVE_H));
 
-const EYEBROW_FONT = 26;
-const WORDMARK_FONT = 70;
+  const EYEBROW_FONT = 26;
+  const WORDMARK_FONT = 70;
 
-const gradientText = {
-  backgroundImage: `linear-gradient(180deg, ${TOP} 0%, ${BOT} 100%)`,
-  backgroundClip: "text",
-  color: "transparent",
-};
+  const gradientText = {
+    backgroundImage: `linear-gradient(180deg, ${TOP} 0%, ${BOT} 100%)`,
+    backgroundClip: "text",
+    color: "transparent",
+  };
 
-const tree = (
-  <div
-    style={{
-      display: "flex",
-      flexDirection: "column",
-      width: "100%",
-      height: "100%",
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: SURFACE,
-    }}
-  >
-    <img
-      src={mascotDataUrl}
-      width={mascotW}
-      height={MASCOT_HEIGHT}
-      style={{ display: "block", marginBottom: 28 }}
-    />
-    <div
-      style={{
-        fontSize: EYEBROW_FONT,
-        fontWeight: 700,
-        lineHeight: 1,
-        letterSpacing: EYEBROW_FONT * 0.2,
-        textTransform: "uppercase",
-        marginBottom: Math.round(EYEBROW_FONT * 0.6),
-        ...gradientText,
-      }}
-    >
-      {/* Satori applies letter-spacing to non-breaking spaces but not
-          to regular ones, and the separators need the same tracking
-          as the letters around them. */}
-      {"Light · Find · Launch"}
-    </div>
+  const tree = (
     <div
       style={{
         display: "flex",
-        fontSize: WORDMARK_FONT,
-        fontWeight: 600,
-        color: "#ffffff",
-        letterSpacing: WORDMARK_FONT * -0.025,
-        lineHeight: 1.05,
+        flexDirection: "column",
+        width: "100%",
+        height: "100%",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: SURFACE,
       }}
     >
-      {/* "Docs" takes the eyebrow gradient so the suffix reads as an
-          addition to the Torchsnap wordmark. Satori's flex layout
-          drops whitespace between the spans, hence the margin. */}
-      <span>Torchsnap</span>
-      <span style={{ marginLeft: WORDMARK_FONT * 0.25, ...gradientText }}>Docs</span>
+      <img
+        src={mascotDataUrl}
+        width={mascotW}
+        height={MASCOT_HEIGHT}
+        style={{ display: "block", marginBottom: 28 }}
+      />
+      <div
+        style={{
+          fontSize: EYEBROW_FONT,
+          fontWeight: 700,
+          lineHeight: 1,
+          letterSpacing: EYEBROW_FONT * 0.2,
+          textTransform: "uppercase",
+          marginBottom: Math.round(EYEBROW_FONT * 0.6),
+          ...gradientText,
+        }}
+      >
+        {/* Satori applies letter-spacing to non-breaking spaces but not
+            to regular ones, and the separators need the same tracking
+            as the letters around them. */}
+        {"Light · Find · Launch"}
+      </div>
+      <div
+        style={{
+          display: "flex",
+          fontSize: WORDMARK_FONT,
+          fontWeight: 600,
+          color: "#ffffff",
+          letterSpacing: WORDMARK_FONT * -0.025,
+          lineHeight: 1.05,
+        }}
+      >
+        {/* "Docs" takes the eyebrow gradient so the suffix reads as an
+            addition to the Torchsnap wordmark. Satori's flex layout
+            drops whitespace between the spans, hence the margin. */}
+        <span>Torchsnap</span>
+        <span style={{ marginLeft: WORDMARK_FONT * 0.25, ...gradientText }}>Docs</span>
+      </div>
     </div>
-  </div>
-);
+  );
+
+  // =========================================================
+  // Render
+  // =========================================================
+
+  const svg = await satori(tree as Parameters<typeof satori>[0], {
+    width: W,
+    height: H,
+    fonts: [
+      { name: "Inter", data: semibold, weight: 600, style: "normal" },
+      { name: "Inter", data: bold, weight: 700, style: "normal" },
+    ],
+  });
+
+  const resvg = new Resvg(svg, { font: { loadSystemFonts: false } });
+  return resvg.render().asPng();
+}
 
 // =========================================================
-// Render
+// Main
 // =========================================================
 
-const svg = await satori(tree as Parameters<typeof satori>[0], {
-  width: W,
-  height: H,
-  fonts: [
-    { name: "Inter", data: semibold, weight: 600, style: "normal" },
-    { name: "Inter", data: bold, weight: 700, style: "normal" },
-  ],
-});
+async function main(): Promise<void> {
+  const [semibold, bold, mascotPng] = await Promise.all([
+    readFile(FONT_SEMIBOLD_PATH),
+    readFile(FONT_BOLD_PATH),
+    readFile(MASCOT_PATH),
+  ]);
+  await writeFile(OUT, await renderCard({ semibold, bold, mascotPng }));
 
-const resvg = new Resvg(svg, { font: { loadSystemFonts: false } });
-await writeFile(OUT, resvg.render().asPng());
+  execFileSync("oxipng", ["-o", "max", "--strip", "safe", OUT], { stdio: "inherit" });
+  console.log(`wrote ${OUT}`);
+}
 
-execFileSync("oxipng", ["-o", "max", "--strip", "safe", OUT], { stdio: "inherit" });
-console.log(`wrote ${OUT}`);
+if (import.meta.main) {
+  await main();
+}

@@ -13,11 +13,20 @@
   the gate's outcome, run `just fullcycle` once to get a baseline. If
   the baseline already fails, tell the user what fails and propose
   fixing it before starting the other work.
-- The scripts in `tools/` get thorough tests with `bun test` whenever
-  you touch them, edited code as much as new code. Cover the error and
-  edge cases, not just the happy path. For a bug, write a regression
-  test that reproduces it, run it and see it fail, then fix the code
-  until it passes.
+- Every piece of TypeScript you touch gets thorough Vitest tests
+  (`just test`), edited code as much as new code. Cover the error and
+  edge cases, not just the happy path. `just test-coverage` shows what
+  is still untested.
+- Browser behavior lives in `*.client.ts` modules next to their
+  component, which only imports and calls them. Test them under jsdom
+  (`// @vitest-environment jsdom`). Scripts that must stay inline, like
+  the pre-paint script in `ThemeSelect.astro` or the `define:vars`
+  script of the Impressum, are the exception.
+- Scripts in `tools/` export their logic and run `main` only under
+  `import.meta.main`, so tests import them without side effects. They
+  use `node:` APIs, not Bun globals, so Vitest can run them.
+- Work test-first. For a bug, write a regression test that reproduces
+  it, run it and see it fail, then fix the code until it passes.
 - ADRs: `EDITOR=true adrs new "<title>"` in `docs/adr/`, Status set to
   `Accepted` when decided.
 - Todos live in `todos/`. `todos/README.md` describes their format.

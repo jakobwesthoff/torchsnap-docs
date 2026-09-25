@@ -27,6 +27,7 @@ import sharp from "sharp";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
+import { writeFile } from "node:fs/promises";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = resolve(HERE, "..");
@@ -42,7 +43,7 @@ const PUBLIC = resolve(PROJECT_ROOT, "public");
 const TOP_COLOR = "#ffb060";
 const BOT_COLOR = "#e0600a";
 
-function gradientSvg(size: number): Buffer {
+export function gradientSvg(size: number): Buffer {
   return Buffer.from(`
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}">
       <defs>
@@ -60,8 +61,8 @@ function gradientSvg(size: number): Buffer {
 // Mascot preparation: trim → square-pad
 // =========================================================
 
-async function prepareMascot(): Promise<Buffer> {
-  const trimmedBuf = await sharp(SRC_MASCOT)
+export async function prepareMascot(source: string): Promise<Buffer> {
+  const trimmedBuf = await sharp(source)
     .trim({ background: { r: 0, g: 0, b: 0, alpha: 0 }, threshold: 0 })
     .toBuffer();
 
@@ -85,7 +86,11 @@ async function prepareMascot(): Promise<Buffer> {
 // Output generators
 // =========================================================
 
-async function writeTransparent(mascot: Buffer, size: number, outPath: string): Promise<void> {
+export async function writeTransparent(
+  mascot: Buffer,
+  size: number,
+  outPath: string,
+): Promise<void> {
   await sharp(mascot).resize(size, size).png({ compressionLevel: 9 }).toFile(outPath);
 }
 
@@ -94,7 +99,11 @@ async function writeTransparent(mascot: Buffer, size: number, outPath: string): 
 // adaptive-icon safe zone (~66 % inner circle).
 const MASCOT_FILL = 0.75;
 
-async function writeGradientIcon(mascot: Buffer, size: number, outPath: string): Promise<void> {
+export async function writeGradientIcon(
+  mascot: Buffer,
+  size: number,
+  outPath: string,
+): Promise<void> {
   const mascotSize = Math.round(size * MASCOT_FILL);
   const resized = await sharp(mascot).resize(mascotSize, mascotSize).toBuffer();
   const offset = Math.round((size - mascotSize) / 2);
@@ -110,7 +119,7 @@ async function writeGradientIcon(mascot: Buffer, size: number, outPath: string):
 // ICO construction (single 32 px PNG payload)
 // =========================================================
 
-function buildIco(pngData: Buffer): Buffer {
+export function buildIco(pngData: Buffer): Buffer {
   const header = Buffer.alloc(6);
   header.writeUInt16LE(0, 0); // reserved
   header.writeUInt16LE(1, 2); // type = ICO
@@ -133,40 +142,58 @@ function buildIco(pngData: Buffer): Buffer {
 // Main
 // =========================================================
 
-const mascot = await prepareMascot();
+export interface FaviconSet {
+  /** The PNG files, which `main` compresses with oxipng. */
+  pngs: string[];
+  ico: string;
+}
 
-const pngOutputs: string[] = [];
+export async function generateFavicons(source: string, outDir: string): Promise<FaviconSet> {
+  const mascot = await prepareMascot(source);
 
-// 32 px transparent — tab icon
-const fav32Path = resolve(PUBLIC, "favicon-32.png");
-await writeTransparent(mascot, 32, fav32Path);
-pngOutputs.push(fav32Path);
+  const pngs: string[] = [];
 
-// 180 px gradient — iOS home screen
-const applePath = resolve(PUBLIC, "apple-touch-icon.png");
-await writeGradientIcon(mascot, 180, applePath);
-pngOutputs.push(applePath);
+  // 32 px transparent — tab icon
+  const fav32Path = resolve(outDir, "favicon-32.png");
+  await writeTransparent(mascot, 32, fav32Path);
+  pngs.push(fav32Path);
 
-// 192 px transparent — browser tab icon (largest rel="icon")
-const icon192Path = resolve(PUBLIC, "icon-192.png");
-await writeTransparent(mascot, 192, icon192Path);
-pngOutputs.push(icon192Path);
+  // 180 px gradient — iOS home screen
+  const applePath = resolve(outDir, "apple-touch-icon.png");
+  await writeGradientIcon(mascot, 180, applePath);
+  pngs.push(applePath);
 
-// 192 px gradient — Android / PWA (referenced from manifest.json only)
-const maskablePath = resolve(PUBLIC, "icon-192-maskable.png");
-await writeGradientIcon(mascot, 192, maskablePath);
-pngOutputs.push(maskablePath);
+  // 192 px transparent — browser tab icon (largest rel="icon")
+  const icon192Path = resolve(outDir, "icon-192.png");
+  await writeTransparent(mascot, 192, icon192Path);
+  pngs.push(icon192Path);
 
-// favicon.ico from the 32 px PNG
-const png32 = await sharp(mascot).resize(32, 32).png().toBuffer();
-const icoPath = resolve(PUBLIC, "favicon.ico");
-await Bun.write(icoPath, buildIco(png32));
+  // 192 px gradient — Android / PWA (referenced from manifest.json only)
+  const maskablePath = resolve(outDir, "icon-192-maskable.png");
+  await writeGradientIcon(mascot, 192, maskablePath);
+  pngs.push(maskablePath);
 
-// Crush all PNGs with oxipng
-execFileSync("oxipng", ["-o", "max", "--strip", "safe", ...pngOutputs], {
-  stdio: "inherit",
-});
+  // favicon.ico from the 32 px PNG
+  const png32 = await sharp(mascot).resize(32, 32).png().toBuffer();
+  const ico = resolve(outDir, "favicon.ico");
+  await writeFile(ico, buildIco(png32));
 
-for (const p of [...pngOutputs, icoPath]) {
-  console.log(`wrote ${p}`);
+  return { pngs, ico };
+}
+
+async function main(): Promise<void> {
+  const { pngs, ico } = await generateFavicons(SRC_MASCOT, PUBLIC);
+
+  // Crush all PNGs with oxipng
+  execFileSync("oxipng", ["-o", "max", "--strip", "safe", ...pngs], {
+    stdio: "inherit",
+  });
+
+  for (const p of [...pngs, ico]) {
+    console.log(`wrote ${p}`);
+  }
+}
+
+if (import.meta.main) {
+  await main();
 }
