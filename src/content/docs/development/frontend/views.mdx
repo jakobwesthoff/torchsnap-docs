@@ -190,6 +190,14 @@ useKeyBindings([
 ]);
 ```
 
+`key` is the key name as the browser reports it in `KeyboardEvent.key`, such
+as `"Backspace"`, `"Enter"` or `"?"`. Letters match regardless of case, so
+`"k"` and `"K"` are the same key and CapsLock does not affect them. For
+letters, `Shift` counts as a modifier: `{ modifiers: ["Meta", "Shift"], key:
+"k" }` fires on <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd> only, and
+`{ modifiers: ["Meta"], key: "k" }` on <kbd>Cmd</kbd>+<kbd>K</kbd> only. `Meta`
+is <kbd>Cmd</kbd> on macOS and <kbd>Ctrl</kbd> on other platforms.
+
 Bindings are organized in layers. Higher layers take precedence:
 
 | Layer | Constant | Used by |
