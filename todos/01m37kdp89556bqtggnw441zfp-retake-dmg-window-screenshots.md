@@ -10,7 +10,7 @@ Page: `src/content/docs/start/installation.mdx` (macOS, "DMG Download")
 
 `src/assets/screenshots/dmg-light.png` and `dmg-dark.png` show the DMG
 window of the old bundle: title `/Volumes/torchsnap` and the app labelled
-"torchsnap". Since torchsnap commit `afc4014` the product name is
+"torchsnap". Since torchsnap commit `dc45b2a` the product name is
 `Torchsnap`, so the DMG mounts as volume `Torchsnap` and contains
 `Torchsnap.app` next to the `Applications` link. The page text already
 uses the new name.
