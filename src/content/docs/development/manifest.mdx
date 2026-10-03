@@ -274,7 +274,7 @@ databases, or call remote services declare their allowed origins here.
 
 | Field | Type | Description |
 |---|---|---|
-| `origins` | list of strings | Allowed origins. Normalized at parse time. Non-empty. Use `"*"` for trust-all. |
+| `origins` | list of strings | Allowed origins: scheme, host and optional port, such as `"https://api.example.com"`, without a path, query or fragment. Normalized at parse time. Non-empty. Use `"*"` for trust-all. |
 
 A gadget that fetches data from two endpoints would declare:
 
