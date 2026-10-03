@@ -219,7 +219,7 @@ doesn't, with no further scoping. All default to `false`.
 | `frecency` | Read the gadget's own frecency ranking data via [`frecency`](/development/interfaces/imports/#frecency). The host records frecency automatically during execution; this flag only controls whether the gadget can query its own rankings. |
 | `website-metadata` | Look up website titles and favicons via [`website-metadata`](/development/interfaces/imports/#website-metadata). The cache is shared across all gadgets. |
 | `settings` | Access the gadget's own settings namespace via [`settings`](/development/interfaces/imports/#settings). |
-| `sql-storage` | Use a per-gadget SQLite database via [`sql-storage`](/development/interfaces/imports/#sql-storage). Also requires a [`[storage.sql]`](#sql-storage) section declaring migrations. |
+| `sql-storage` | Use a per-gadget SQLite database via [`sql-storage`](/development/interfaces/imports/#sql-storage). Requires a [`[storage.sql]`](#sql-storage) section declaring migrations; a manifest with only one of the two fails to load. |
 | `path-resolver` | Resolve substitution variables via [`path-resolver`](/development/interfaces/imports/#path-resolver). |
 | `icon-cache` | Show the real icon of an installed application with the `AppIcon` entry icon. Without this flag, an entry with `AppIcon` is shown without an icon. |
 
@@ -472,7 +472,9 @@ logs, cached API responses) can declare a SQLite database in the `[storage.sql]`
 section. Each gadget gets its own isolated database file managed entirely by the
 host. The gadget never touches the file directly; instead it uses the
 [`sql-storage`](/development/interfaces/imports/#sql-storage) host import to
-execute queries and statements.
+execute queries and statements. The section goes together with
+`sql-storage = true` under [`[permissions]`](#permissions); a manifest with
+only one of the two fails to load.
 
 | Field | Type | Description |
 |---|---|---|
@@ -481,6 +483,9 @@ execute queries and statements.
 A gadget that creates a table and later adds an index would declare:
 
 ```toml title="manifest.toml"
+[permissions]
+sql-storage = true
+
 [storage.sql]
 migrations = [
     "migrations/001_init.sql",
