@@ -31,6 +31,21 @@ folder.
 
 <Screenshot dark={dmgDark} light={dmgLight} alt="Torchsnap DMG installer window" maxWidth="400px" />
 
+### Homebrew
+
+With [Homebrew](https://brew.sh), install Torchsnap from its tap:
+
+```sh
+brew install --cask jakobwesthoff/tap/torchsnap
+```
+
+Torchsnap keeps updating itself, as described in [Updating](#updating).
+`brew upgrade` leaves it alone and only replaces it when you add `--greedy`.
+
+To remove Torchsnap, run `brew uninstall --cask torchsnap`. Add `--zap` to
+also delete your settings, installed gadgets, launcher history and the login
+item that starts Torchsnap when you log in.
+
 ### First launch
 
 When you open Torchsnap for the first time, macOS asks whether you want to
@@ -88,15 +103,6 @@ Versions before 0.12.0 cannot update themselves. Download
 once more and replace Torchsnap in your Applications folder. From then on,
 Torchsnap updates itself.
 :::
-
-### Homebrew
-
-A Homebrew tap is not yet available. Use the DMG download for now. Once
-published, the install command will be:
-
-```sh
-brew install jakobwesthoff/tap/torchsnap
-```
 
 ## Linux
 
