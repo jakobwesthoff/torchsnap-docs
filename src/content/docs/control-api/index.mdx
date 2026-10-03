@@ -84,6 +84,9 @@ over newline-delimited JSON:
 - Each **response** is a single JSON object on one line, terminated by `\n`.
 - The client picks an `id` (string or number); the server echoes it back so
   requests and responses can be matched.
+- A request line holds at most 1 MiB (1,048,576 bytes) before its `\n`. For a
+  longer line the server answers with error code `-32600` and a `null` `id`,
+  then closes the connection.
 
 ### Request format
 

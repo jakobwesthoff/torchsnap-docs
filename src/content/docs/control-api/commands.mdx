@@ -129,7 +129,7 @@ Returned by the JSON-RPC framing layer before any command handler runs.
 | Code | Meaning |
 |---|---|
 | `-32700` | Parse error: the request is not valid JSON. |
-| `-32600` | Invalid request: missing `method` field or malformed envelope. |
+| `-32600` | Invalid request: missing `method` field, malformed envelope, or a request line longer than 1 MiB. |
 | `-32601` | Method not found: no handler registered for the given method name. |
 
 ```json title="Example"
