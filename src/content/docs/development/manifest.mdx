@@ -245,7 +245,7 @@ enabled.
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `schemes` | list of strings | `[]` | URL schemes allowed for `open_url` (e.g. `"https"`, `"http"`, `"mailto"`). |
+| `schemes` | list of strings | `[]` | URL schemes allowed for `open_url` (e.g. `"https"`, `"http"`, `"mailto"`), as bare names without `:` or `//`, or `"*"` for any scheme. |
 | `open-path` | bool | `false` | Allow opening filesystem paths with the OS default handler. |
 | `reveal-path` | bool | `false` | Allow revealing filesystem paths in the file manager. |
 
