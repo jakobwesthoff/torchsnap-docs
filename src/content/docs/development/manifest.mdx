@@ -351,9 +351,9 @@ invocation shapes of the same binary.
 | `binary` | string | yes | Executable name or absolute path. |
 | `argv` | list of constraints | no | Per-position argument rules. Default: `[]` (zero arguments only). |
 | `cwd` | string | no | Working directory. Supports [substitution variables](#substitution-variables). Not enforced yet, see below. |
-| `timeout-ms-max` | integer | no | Hard ceiling on per-call timeout in milliseconds. Not enforced yet, see below. |
-| `max-output-bytes` | integer | no | Hard ceiling on captured stdout + stderr bytes. Not enforced yet, see below. |
-| `max-stdin-bytes` | integer | no | Hard ceiling on stdin input bytes. Not enforced yet, see below. |
+| `timeout-ms-max` | integer | no | Hard ceiling on per-call timeout in milliseconds, at least 1. Not enforced yet, see below. |
+| `max-output-bytes` | integer | no | Hard ceiling on captured stdout + stderr bytes, at least 1. Not enforced yet, see below. |
+| `max-stdin-bytes` | integer | no | Hard ceiling on stdin input bytes, at least 1. Not enforced yet, see below. |
 
 Each element in `argv` constrains one argument position using an inline table
 with a `kind` field:
@@ -362,7 +362,7 @@ with a `kind` field:
 |---|---|---|
 | `literal` | `value` | Exact string match. Supports [substitution variables](#substitution-variables). |
 | `enum` | `values` | Argument must equal one of the listed strings. |
-| `glob` | `pattern` | Argument must match the glob pattern. |
+| `glob` | `pattern` | Argument must match the glob pattern. A pattern that does not compile fails the manifest. |
 | `regex` | `pattern` | Argument must match the regex (anchored to the full string automatically). |
 | `path-under` | `root` | Argument must canonicalize to a path under `root`. Symlinks are resolved before checking, and a path through a symlink whose target does not exist is rejected. Supports [substitution variables](#substitution-variables). |
 | `any-string` | (none) | Accepts any value unconditionally. |
