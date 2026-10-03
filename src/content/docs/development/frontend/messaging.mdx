@@ -48,6 +48,9 @@ type GadgetSendMessage = <TPayload = unknown, TResult = unknown>(
 `method` identifies which operation to invoke on the backend. `payload` is
 serialized as JSON and passed to the backend's `handle_message`. The returned
 promise resolves with the parsed JSON response, or rejects with an error string.
+A launcher view that sent the message for something the user did shows the
+rejection in the launcher footer with `useLauncher().showError()`, see
+[Reporting errors](/development/frontend/views/#reporting-errors).
 
 ### Example
 

@@ -111,8 +111,9 @@ Returns actions for controlling the launcher from within a view:
 |---|---|
 | `goBack()` | Return to the normal result list, dismissing the custom view. |
 | `dismiss()` | Close the launcher entirely. |
-| `openSettings()` | Open the Settings window on this gadget's section and close the launcher, like the `OpenSettings` [post-action](/development/search/#postaction). Returns a promise that rejects, with the launcher still open, when the window cannot open. |
-| `onExecute(entryId, slot)` | Run the action in `slot` of an entry the view received in `results`. See [Running entry actions](#running-entry-actions). |
+| `openSettings()` | Open the Settings window on this gadget's section and close the launcher, like the `OpenSettings` [post-action](/development/search/#postaction). When the window cannot open, the launcher stays open, shows the error in its footer, and the returned promise rejects. |
+| `onExecute(entryId, slot)` | Run the action in `slot` of an entry the view received in `results`. Returns a promise. See [Running entry actions](#running-entry-actions). |
+| `showError(message)` | Show a failure of the view's own action in the launcher footer. See [Reporting errors](#reporting-errors). |
 | `onFooterChange(state)` | Replace the launcher's footer bar with custom content. |
 | `setDisplayQuery(query)` | Update the search bar text without triggering a new search. |
 | `mouseActiveRef` | A ref indicating whether the mouse is currently active (for keyboard/mouse interaction management). |
@@ -148,6 +149,47 @@ entry ID, or a slot the entry leaves empty, nothing happens. A view that acts
 on its own state instead, such as a value it computed, calls its backend with
 [`sendMessage`](/development/frontend/messaging/) and then a launcher action
 such as `dismiss()`.
+
+### Reporting errors
+
+When an action fails, the launcher stays open and shows one error line in
+place of the footer hints. The line goes away on the user's next key press,
+action, query or selection change, or when the launcher hides.
+
+`onExecute` and `openSettings` report their own failures. When `execute()`
+returns `Err`, the footer shows `<gadget name> failed: <message>` and the
+promise `onExecute` returned rejects with the message. The launcher handles
+that rejection, so a view can ignore the promise. Await it only to react to
+the outcome, such as resetting a busy state:
+
+```tsx
+const { onExecute } = useLauncher();
+
+setBusy(true);
+onExecute(entry.id, "copy")
+  .catch(() => {}) // the footer already shows the error
+  .finally(() => setBusy(false));
+```
+
+For an action the view runs through `sendMessage`, pass the failure to
+`showError(message)`. The launcher shows the message as given:
+
+```tsx
+const { dismiss, showError } = useLauncher();
+const { sendMessage } = useGadgetRuntime();
+
+try {
+  await sendMessage("copy", { result });
+} catch (error) {
+  showError(`Copying the result failed: ${String(error)}`);
+  return;
+}
+dismiss();
+```
+
+Report only failures of something the user just did. A background load that
+fails, such as a preview, belongs in the view itself or in the gadget's log
+(`useGadgetRuntime().logger`).
 
 ### Footer management
 

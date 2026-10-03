@@ -300,7 +300,8 @@ fn execute(command: Command) -> Result<PostAction, String> {
 action sits in. Put everything the action needs into the command.
 
 Returning `Err(string)` logs the error on the host side. The launcher stays
-open so the user can try again. A command that does not decode into your
+open so the user can try again, and its footer shows `<entry title> failed:
+<message>` until the user's next key press or action. A command that does not decode into your
 `Command` type becomes an `Err` before your `execute()` runs.
 
 ### PostAction
