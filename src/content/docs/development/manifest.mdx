@@ -304,7 +304,7 @@ may access here.
 
 | Field | Type | Description |
 |---|---|---|
-| `read` | list of strings | Path patterns. Supports `*` (single segment) and `**` (cross-segment) globs. Non-empty. |
+| `read` | list of strings | Absolute path patterns: each starts with `/`, a substitution variable or, for Windows, a drive letter (`C:\`). Supports `*` (single segment) and `**` (cross-segment) globs. Non-empty. |
 
 Patterns can use substitution variables like `${home}` or `${xdg-config}` to
 reference platform-specific directories without hardcoding paths. See
