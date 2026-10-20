@@ -220,11 +220,13 @@ backgrounds, borders, accent colors, and selection highlights.
 
 ### CSS scoping
 
-The host wraps each gadget's view in a scoped container
+The host wraps each of your launcher views and inline views, and your settings
+component on the gadget's settings page, in a scoped container
 (`<div data-gadget="<gadget-id>">`). Your CSS is automatically wrapped in an
 `@scope` rule targeting that container, so your styles cannot leak into other
-gadgets or the host UI. The host's design tokens still cascade in, which is why
-your Tailwind utilities resolve to the correct theme colors.
+gadgets or the host UI, such as the header and the Enable switch above your
+settings. The host's design tokens still cascade in, which is why your Tailwind
+utilities resolve to the correct theme colors.
 
 ## SDK subpath exports
 
@@ -253,7 +255,8 @@ declared in the manifest.
 When a gadget's `search()` returns a `CustomUi` or `InlineUi` response, the
 host looks up the view name in the registry and mounts the corresponding React
 component inside a scoped container. Settings panels are mounted in the
-Torchsnap settings window when the user navigates to the gadget's configuration.
+Torchsnap settings window when the user navigates to the gadget's
+configuration, inside a scoped container of their own.
 
 All gadget components are wrapped in React `Suspense` boundaries and a
 `GadgetContextProvider` that makes the gadget's hooks available.

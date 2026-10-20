@@ -38,7 +38,9 @@ export function MySettings(props: GadgetSettingsProps) {
 
 The host wraps your component in a standardized settings header (gadget name,
 description, enable/disable toggle) and a `GadgetContextProvider`. Your
-component renders the gadget-specific configuration controls below that header.
+component renders the gadget-specific configuration controls below that
+header, inside the scoped container that your `settings-css` applies to; the
+header itself is outside it.
 
 ## useGadgetSetting
 
