@@ -35,8 +35,12 @@ Each result shows the application name, its file path, and the app's own icon.
     Applications are discovered via Spotlight (`mdfind`) using the query
     `kMDItemContentType == 'com.apple.application-bundle'`. Only bundles under
     an `/Applications/` directory are included, covering `/Applications/`,
-    `/System/Applications/`, and `~/Applications/`. Framework helpers and
-    bundles in other locations are filtered out.
+    `/System/Applications/`, and `~/Applications/`. Bundles in other
+    locations are filtered out, and so are helper apps inside another app,
+    such as login items or framework helpers. An app inside another app
+    stays listed when it sits in a folder named `Applications`, as Xcode's
+    Instruments or Finder's AirDrop do. Menu bar and background apps are
+    listed like any other app.
 
     The display name is resolved from the app's `Info.plist` in priority order:
     `CFBundleDisplayName`, then `CFBundleName`, then the `.app` filename as a
