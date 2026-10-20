@@ -696,14 +696,18 @@ let stdout = String::from_utf8(result.stdout)
     .map_err(|e| format!("invalid UTF-8: {e}"))?;
 ```
 
+The `.cwd()` call needs a rule for `/usr/bin/git` whose
+[`cwd`](/development/manifest/#working-directory) is `/path/to/repo` or a
+folder above it.
+
 Builder methods:
 
 | Method | Description |
 |---|---|
 | `.arg(value)` | Append a single argument. |
 | `.args(iter)` | Append multiple arguments. |
-| `.cwd(path)` | Set the working directory. |
-| `.env(key, value)` | Add an environment variable. |
+| `.cwd(path)` | Set the working directory: an absolute path at or below the rule's [`cwd`](/development/manifest/#working-directory). Fails with `permission-denied` when the rule declares no `cwd`. |
+| `.env(key, value)` | Set an environment variable the rule [declares](/development/manifest/#environment-variables). Other keys fail with `permission-denied`. |
 | `.stdin(bytes)` | Provide stdin data. |
 | `.timeout(duration)` | Set the execution timeout. |
 | `.max_output_bytes(max)` | Set the output size limit. |

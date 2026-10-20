@@ -348,9 +348,10 @@ invocation shapes of the same binary.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `binary` | string | yes | Executable name or absolute path. |
+| `binary` | string | yes | Absolute path, or a bare program name looked up on a fixed `PATH` (see [What the program sees](#what-the-program-sees)). A relative path such as `bin/tool` is rejected. |
 | `argv` | list of constraints | no | Per-position argument rules. Default: `[]` (zero arguments only). |
-| `cwd` | string | no | Working directory. Supports [substitution variables](#substitution-variables). Not enforced yet, see below. |
+| `cwd` | string | no | The folder the program runs in, and the root of the folders your gadget may pass with `.cwd()`. Supports [substitution variables](#substitution-variables). See [Working directory](#working-directory). |
+| `env` | table | no | Environment variables your gadget may set, each with a value constraint. See [Environment variables](#environment-variables). |
 | `timeout-ms-max` | integer | no | Hard ceiling on per-call timeout in milliseconds, at least 1. Not enforced yet, see below. |
 | `max-output-bytes` | integer | no | Hard ceiling on captured stdout + stderr bytes, at least 1. Not enforced yet, see below. |
 | `max-stdin-bytes` | integer | no | Hard ceiling on stdin input bytes, at least 1. Not enforced yet, see below. |
@@ -364,7 +365,7 @@ with a `kind` field:
 | `enum` | `values` | Argument must equal one of the listed strings. |
 | `glob` | `pattern` | Argument must match the glob pattern. A pattern that does not compile fails the manifest. |
 | `regex` | `pattern` | Argument must match the regex (anchored to the full string automatically). |
-| `path-under` | `root` | Argument must canonicalize to a path under `root`. Symlinks are resolved before checking, and a path through a symlink whose target does not exist is rejected. Supports [substitution variables](#substitution-variables). |
+| `path-under` | `root` | Argument must be an absolute path without `..` that canonicalizes to a path under `root`. Symlinks are resolved before checking, and a path through a symlink whose target does not exist is rejected. The path must neither lie in nor contain Torchsnap's data folder (see [Files your gadget can write](#files-your-gadget-can-write)). `root` starts with `/` or a variable and supports [substitution variables](#substitution-variables). |
 | `any-string` | (none) | Accepts any value unconditionally. |
 | `rest` | `constraint` | Applies the inner constraint to all remaining positions. Must be the last element in the list. |
 
@@ -393,15 +394,14 @@ With `rest`, the prefix must match and every trailing argument must satisfy the
 inner constraint. If no rule matches, the call is rejected before the process is spawned.
 
 {/* TODO: Remove once the per-rule limits are enforced. Tracked in
-    the torchsnap todo 01KWG1AJRVFSMXYJMM7BVCS04B-per-rule-command-limits-for-cwd-timeout-output-and-stdin-are-parsed-but.md */}
+    the torchsnap todo 01KWG1AJRVFSMXYJMM7BVCS04B-per-rule-command-limits-for-timeout-output-and-stdin-are-parsed-but.md */}
 
 <Aside type="caution" title="TODO: Per-rule limits are not enforced">
-  The host accepts `cwd`, `timeout-ms-max`, `max-output-bytes`, and
+  The host accepts `timeout-ms-max`, `max-output-bytes`, and
   `max-stdin-bytes` in a rule but does not apply them yet, and the install
-  review does not show them. A call runs in the working directory your gadget
-  passes, or in its own scratch directory. The host's own limits apply to
-  every call: a timeout of 10 seconds by default and at most 60, and 4 MiB of
-  captured stdout and of stderr by default and at most 64 MiB each.
+  review does not show them. The host's own limits apply to every call: a
+  timeout of 10 seconds by default and at most 60, and 4 MiB of captured
+  stdout and of stderr by default and at most 64 MiB each.
 </Aside>
 
 <Aside type="note">
@@ -410,6 +410,102 @@ inner constraint. If no rule matches, the call is rejected before the process is
   shell tokenization. This is intentional: shell wrapping would bypass the
   per-position argument matching.
 </Aside>
+
+#### Working directory
+
+A rule's `cwd` decides where the program runs and which folders your
+gadget may choose. Without `cwd`, the program runs in an empty folder that
+exists only for that call, and a call that passes `.cwd()` is rejected.
+With `cwd`, a call without `.cwd()` runs in that folder, which is created
+if it does not exist, and a call with `.cwd()` must pass an absolute path
+without `..` to that folder or a folder inside it.
+
+A gadget that runs `git log` in repositories below the user's projects
+folder would declare:
+
+```toml title="manifest.toml"
+[[permissions.command]]
+binary = "git"
+argv = [
+    { kind = "literal", value = "log" },
+    { kind = "rest", constraint = { kind = "any-string" } },
+]
+cwd = "${home}/projects"
+```
+
+The host resolves the folder your gadget passes, symlinks included, and
+starts the program in the resolved folder. A folder outside `cwd`, a
+relative path, or a path through a symlink whose target does not exist
+fails with `permission-denied`. The folder must also neither lie in nor
+contain Torchsnap's data folder, so your home folder, `~/Library` and
+`~/Library/Application Support` cannot be a working directory, not even
+as the default of `cwd = "${home}"`. Declare a narrower `cwd` instead.
+
+#### Environment variables
+
+Your gadget can set an environment variable only when the rule declares
+it. The `[permissions.command.env]` table lists the variables, each with
+a value constraint of the same kinds as `argv` positions, except `rest`:
+
+```toml title="manifest.toml"
+[[permissions.command]]
+binary = "git"
+argv = [{ kind = "literal", value = "log" }]
+
+[permissions.command.env]
+GIT_AUTHOR_NAME = { kind = "regex", pattern = "[A-Za-z ]{1,64}" }
+LC_ALL = { kind = "enum", values = ["C", "en_US.UTF-8"] }
+```
+
+A call that sets an undeclared variable, a value with a NUL byte, or a
+value outside its constraint fails with `permission-denied`. A value
+checked by `regex`, `glob` or `any-string` must not contain `/`: to pass
+a path, declare the variable as `path-under`, and the program receives
+the resolved path. A `literal` or `enum` value may name only absolute
+paths, also inside a list or after `--option=`.
+
+The manifest is rejected when a key is empty or contains `=`, and for
+variables that make a program load or run other code, in any case:
+`PATH`, `HOME`, `TMPDIR`, every variable starting with `LD_`, `DYLD_`,
+`GIT_CONFIG_KEY_`, `GIT_CONFIG_VALUE_` or `npm_config_`, and
+`NODE_OPTIONS`, `NODE_PATH`, `PYTHONPATH`, `PYTHONSTARTUP`, `PYTHONHOME`,
+`PERL5LIB`, `PERL5OPT`, `RUBYOPT`, `RUBYLIB`, `JAVA_TOOL_OPTIONS`,
+`BASH_ENV`, `ENV`, `IFS`, `ZDOTDIR`, `PROMPT_COMMAND`, `SHELL`, `PAGER`,
+`LESSOPEN`, `EDITOR`, `VISUAL`, `BROWSER`, `SSH_ASKPASS`, `GIT_SSH`,
+`GIT_SSH_COMMAND`, `GIT_EXTERNAL_DIFF`, `GIT_PAGER`, `GIT_EDITOR`,
+`GIT_SEQUENCE_EDITOR`, `GIT_ASKPASS`, `GIT_PROXY_COMMAND`,
+`GIT_EXEC_PATH`, `GIT_CONFIG_COUNT` and `GIT_CONFIG_PARAMETERS`.
+
+#### What the program sees
+
+The program does not inherit Torchsnap's environment. It gets `LANG`,
+`LANGUAGE`, `LC_*`, `TZ` and `__CF_USER_TEXT_ENCODING` from Torchsnap,
+`PATH` set to
+`/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin:/opt/homebrew/bin`, the
+variables your gadget declared and set, and `HOME` and `TMPDIR` pointing
+at empty folders that exist only for that call. A bare `binary` name is
+looked up on that `PATH`; a program installed elsewhere needs an
+absolute `binary`. Programs that find their configuration through
+`HOME`, such as git, do not see the user's files. Programs that look up
+the home folder in the system's user database, such as ssh, still do.
+
+#### Files your gadget can write
+
+Nothing your gadget can write may act as configuration for the program.
+Torchsnap's data folder holds every gadget's data, the installed gadgets
+and Torchsnap's own settings, so the host keeps it out of every command:
+
+- The manifest is rejected when a rule's `cwd`, a `path-under` root, or a
+  `literal` or `enum` value uses {"${gadget-data}"}, or, for `cwd` and
+  `env` values, {"${gadget-archive}"}. Arguments may name files in your
+  gadget's package, such as a script a granted interpreter runs. Roots
+  and paths in fixed values may not contain `..`.
+- The install review refuses a gadget, and loading fails, when a rule's
+  resolved `cwd`, `path-under` roots or fixed absolute paths lie in
+  Torchsnap's data folder.
+- A call fails with `permission-denied` when the folder it runs in, or a
+  path it passes for a `path-under` argument or variable, lies in or
+  contains that folder.
 
 #### Overlap detection
 
@@ -457,9 +553,9 @@ hardcoding platform-specific paths.
 | {"${xdg-config}"} | XDG config directory (`~/.config` on Linux, `~/Library/Application Support` on macOS). |
 | {"${xdg-data}"} | XDG data directory (`~/.local/share` on Linux, `~/Library/Application Support` on macOS). |
 
-Recognized in: `[permissions.filesystem] read` patterns,
-`[[permissions.command]]` `cwd`, `literal` values, `enum` values, and
-`path-under` roots.
+Recognized in: `[permissions.filesystem] read` patterns, and in
+`[[permissions.command]]` `cwd`, `literal` values, `enum` values and
+`path-under` roots, both in `argv` and in `env`.
 
 These variables are also available at runtime through the
 [`path-resolver`](/development/interfaces/imports/#path-resolver) host import,
