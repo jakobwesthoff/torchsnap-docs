@@ -86,10 +86,18 @@ open database connections, seed caches from settings, or run first-launch data
 imports.
 
 Returning `Err(string)` signals a fatal initialization failure. The host
-disables the gadget immediately and logs the error message. No further calls are
-dispatched after a failed enable. Only return an error for conditions that
-genuinely prevent the gadget from functioning. Non-fatal issues (like a network
-fetch failing on first launch) should be handled internally.
+deactivates the gadget and logs the error. No further calls reach the gadget
+until it is started again. Settings show the gadget as failed to start in a
+red box, with your string exactly as you returned it as the reason, so write
+it for the user: say what is missing and what fixes it. If `enable()` traps
+instead, Settings show the trap's root cause. The user's switch stays on, and
+the **Retry** button in that box calls `enable()` again, as does turning the
+gadget off and on. Each start begins with fresh memory, but anything you wrote
+to storage before returning the error is still there.
+
+Only return an error for conditions that genuinely prevent the gadget from
+functioning. Non-fatal issues (like a network fetch failing on first launch)
+should be handled internally.
 
 ```rust
 fn enable() -> Result<(), String> {
