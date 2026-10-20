@@ -447,6 +447,28 @@ for row in &rows {
   `db.execute("COMMIT", &[])`, and `db.execute("ROLLBACK", &[])`.
 </Aside>
 
+### What your SQL can reach
+
+Your SQL, migrations included, works on your gadget's own database and
+nothing else. The host refuses the statements below: `execute` and `query`
+return an `Err` and the statement does not run. The connection keeps working
+afterwards, inside an open transaction too.
+
+- `ATTACH DATABASE` and `DETACH DATABASE` fail with `not authorized`, however
+  you write the file name.
+- `VACUUM INTO` fails, and so does plain `VACUUM`: your database cannot be
+  vacuumed. SQLite reuses the space of deleted rows for later writes, but the
+  file does not shrink.
+- `PRAGMA temp_store_directory`, `data_store_directory`, `soft_heap_limit`
+  and `hard_heap_limit` fail with `not authorized`, for reading as well as
+  setting. They change SQLite settings that every database in Torchsnap
+  shares.
+- Writes to `sqlite_schema`, even after `PRAGMA writable_schema = ON`, and to
+  the internal tables of FTS and R\*Tree indexes (such as `notes_segdir` or
+  `notes_data` for an index named `notes`) fail with `may not be modified`.
+  Write to the index table itself; SQLite keeps its internal tables up to
+  date. `PRAGMA journal_mode = OFF` is ignored.
+
 ## HTTP
 
 Synchronous HTTP client for making requests to external services. The interface

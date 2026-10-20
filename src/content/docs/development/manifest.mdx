@@ -502,6 +502,10 @@ Naming files with a numeric prefix (`001_`, `002_`) is recommended to keep the
 directory listing consistent with the manifest order, but the filenames
 themselves have no effect on execution order.
 
+Migrations follow the same rules as the rest of your gadget's SQL (see
+[What your SQL can reach](/development/interfaces/imports/#what-your-sql-can-reach)).
+If the host refuses a statement in a migration, your gadget fails to enable.
+
 A typical initial migration creates the gadget's tables:
 
 ```sql title="migrations/001_init.sql"
