@@ -52,6 +52,9 @@ The socket is located in the Torchsnap application data directory:
 The Linux path follows the XDG Base Directory specification and respects a
 custom `$XDG_DATA_HOME` if set.
 
+The socket file has mode `0600`, read and write for your user only, from
+the moment it appears at this path, whatever the umask.
+
 ## Connecting
 
 Connect with any tool that speaks Unix sockets. The examples below use
