@@ -119,14 +119,23 @@ Report the current launcher state.
 | Field | Type | Description |
 |---|---|---|
 | `visible` | boolean | Whether the launcher window is currently visible. |
+| `ready` | boolean | Whether the launcher has reported its layout and its frontend is connected. Until then `show` fails, and `query` and `dismiss` return error code `-1`. |
+
+A script that starts Torchsnap can wait until `ready` is `true` before it
+sends `show` or `query`:
 
 ```bash
 echo '{"jsonrpc":"2.0","id":1,"method":"status"}' | socat - UNIX-CONNECT:"$SOCK"
 ```
 
 ```json title="Response"
-{"jsonrpc": "2.0", "id": 1, "result": {"visible": false}}
+{"jsonrpc": "2.0", "id": 1, "result": {"visible": false, "ready": true}}
 ```
+
+`ready` reflects what Torchsnap's backend knows. It stays `true` while the
+launcher's page reloads, until the new page connects, and it turns `true` one
+render before the launcher shows its real content. When a script needs the
+launcher to have applied a command, it checks the result itself.
 
 ## Error codes
 
