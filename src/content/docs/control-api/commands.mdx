@@ -78,6 +78,10 @@ echo '{"jsonrpc":"2.0","id":1,"method":"dismiss"}' | socat - UNIX-CONNECT:"$SOCK
 {"jsonrpc": "2.0", "id": 1, "result": {"ok": true}}
 ```
 
+If the launcher's frontend is not connected, `dismiss` returns error code `-1`
+with the message `launcher frontend is not connected` and leaves the launcher
+as it is. Use [`hide`](#hide) to hide it anyway.
+
 ## `query`
 
 Set the search input text. The launcher's search pipeline runs automatically
@@ -100,7 +104,11 @@ echo '{"jsonrpc":"2.0","id":1,"method":"query","params":{"text":"firefox"}}' \
 {"jsonrpc": "2.0", "id": 1, "result": {"ok": true}}
 ```
 
-Returns error code `-1` if the `text` parameter is missing.
+Returns error code `-1` if the `text` parameter is missing, and also when the
+launcher's frontend is not connected yet or its page is gone (message
+`launcher frontend is not connected`). A successful answer means Torchsnap
+handed the text to the launcher's page. While that page reloads, the text can
+still get lost.
 
 ## `status`
 
@@ -142,7 +150,7 @@ Returned by individual command handlers.
 
 | Code | Meaning |
 |---|---|
-| `-1` | Invalid state: a precondition is not met or a required parameter is missing. |
+| `-1` | Invalid state: a precondition is not met (for example, the launcher's frontend is not connected) or a required parameter is missing. |
 | `-3` | Internal error: an unexpected failure in the handler. |
 
 ## Scripting examples
