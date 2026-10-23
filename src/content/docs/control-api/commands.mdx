@@ -119,6 +119,7 @@ Report the current launcher state.
 | Field | Type | Description |
 |---|---|---|
 | `visible` | boolean | Whether the launcher window is currently visible. |
+| `focused` | boolean | Whether the launcher window has keyboard focus. Some desktops, such as GNOME on Wayland, can refuse focus to a window that just appeared, so read it a moment after `show`. |
 | `ready` | boolean | Whether the launcher has reported its layout and its frontend is connected. Until then `show` fails, and `query` and `dismiss` return error code `-1`. |
 
 A script that starts Torchsnap can wait until `ready` is `true` before it
@@ -129,7 +130,7 @@ echo '{"jsonrpc":"2.0","id":1,"method":"status"}' | socat - UNIX-CONNECT:"$SOCK"
 ```
 
 ```json title="Response"
-{"jsonrpc": "2.0", "id": 1, "result": {"visible": false, "ready": true}}
+{"jsonrpc": "2.0", "id": 1, "result": {"visible": false, "focused": false, "ready": true}}
 ```
 
 `ready` reflects what Torchsnap's backend knows. It stays `true` while the
