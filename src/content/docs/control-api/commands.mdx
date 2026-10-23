@@ -5,6 +5,8 @@ sidebar:
   order: 1
 ---
 
+import { Aside } from '@astrojs/starlight/components';
+
 All commands follow the [JSON-RPC 2.0](https://www.jsonrpc.org/specification)
 request/response format described in the [Introduction](/control-api/). The
 examples below use `$SOCK` as a shorthand for the socket path:
@@ -121,6 +123,7 @@ Report the current launcher state.
 | `visible` | boolean | Whether the launcher window is currently visible. |
 | `focused` | boolean | Whether the launcher window has keyboard focus. Some desktops, such as GNOME on Wayland, can refuse focus to a window that just appeared, so read it a moment after `show`. |
 | `ready` | boolean | Whether the launcher has reported its layout and its frontend is connected. Until then `show` fails, and `query` and `dismiss` return error code `-1`. |
+| `targetMonitor` | object or null | The monitor Torchsnap last placed the launcher on, or `null` before the first placement. See [Target monitor](#target-monitor). |
 
 A script that starts Torchsnap can wait until `ready` is `true` before it
 sends `show` or `query`:
@@ -130,8 +133,31 @@ echo '{"jsonrpc":"2.0","id":1,"method":"status"}' | socat - UNIX-CONNECT:"$SOCK"
 ```
 
 ```json title="Response"
-{"jsonrpc": "2.0", "id": 1, "result": {"visible": false, "focused": false, "ready": true}}
+{"jsonrpc": "2.0", "id": 1, "result": {"visible": false, "focused": false, "ready": true, "targetMonitor": {"name": "Built-in Retina Display", "x": 0.0, "y": 0.0, "width": 1512.0, "height": 982.0, "scaleFactor": 2.0}}}
 ```
+
+### Target monitor
+
+`targetMonitor` tells you where Torchsnap aimed the launcher: the monitor under
+the mouse pointer, or the primary monitor when no monitor contains it.
+
+| Field | Type | Description |
+|---|---|---|
+| `name` | string or null | The monitor's name as the windowing toolkit reports it. |
+| `x`, `y` | number | The monitor's top-left corner in logical units. |
+| `width`, `height` | number | The monitor's size in logical units. |
+| `scaleFactor` | number | The monitor's scale factor as the windowing toolkit reports it. |
+
+On Linux the name is the monitor's model string, which can be missing or the
+same for two identical monitors, and the scale factor is a whole number rather
+than a fractional desktop scale. Match monitors by their rectangle, not by
+name.
+
+<Aside type="caution" title="Wayland">
+  On Wayland Torchsnap does not learn where the mouse pointer is, so the target
+  is the monitor at (0,0), or the primary one, and the compositor decides where
+  the window really appears.
+</Aside>
 
 `ready` reflects what Torchsnap's backend knows. It stays `true` while the
 launcher's page reloads, until the new page connects, and it turns `true` one
