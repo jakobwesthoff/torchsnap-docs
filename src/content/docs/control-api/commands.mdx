@@ -267,7 +267,9 @@ echo '{"jsonrpc":"2.0","id":1,"method":"snapshot"}' | socat - UNIX-CONNECT:"$SOC
 }}
 ```
 
-The answer is the launcher's last rendered state. Right after `query`,
+The answer comes from the launcher's last render, except `contentVisible` and
+`inputFocused`, which Torchsnap reads from the page when the request arrives.
+Right after `query`,
 `searching` can still be `true`, or the results can still belong to the
 previous text, so poll until `searching` is `false` and `query` matches what
 you sent. `snapshot` returns error code `-1` when the launcher's frontend is
