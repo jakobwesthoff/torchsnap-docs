@@ -1,5 +1,10 @@
 # torchsnap-docs: project rules
 
+- Documentation of torchsnap changes that are not released yet goes on
+  the branch `next`; `main` is the published site of the latest release
+  and takes only corrections to it, merged into `next` afterwards. At a
+  release `main` is fast-forwarded to `next` (README "Releasing",
+  ADR 0003).
 - Follow `docs/documentation-writing-howto.md` for every page change
   (writing conventions, page workflow, screenshots, components).
 - Facts come from the torchsnap repo (`../torchsnap`). Verify every

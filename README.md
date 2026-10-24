@@ -103,11 +103,35 @@ needs the same change in the other.
 The site is published with GitHub Pages under the custom domain
 `docs.torchsnap.app` (ADR 0002 in `docs/adr/`). The workflow
 `.github/workflows/deploy.yml` runs `just fullcycle` on every push to
-`main`, on pull requests, and on manual runs. It deploys `dist/` only
-from `main`, and only while the repository is public. A private
-repository gets the checks and the build as CI and no deployment.
+`main` or `next`, on pull requests, and on manual runs. It deploys
+`dist/` only from `main`, and only while the repository is public. A
+private repository gets the checks and the build as CI and no
+deployment.
 
-Before pushing a change to `main`:
+Two branches keep the published site at the released version
+(ADR 0003):
+
+- `next` holds the documentation of torchsnap's `main`. Documentation
+  for a torchsnap change goes here and may be pushed at any time; it is
+  checked but not published.
+- `main` holds the documentation of the latest release. Corrections to
+  it go to `main`, are pushed, and are then merged into `next`.
+
+At a release, once torchsnap's `just release-publish` has finished,
+fast-forward `main` to `next` and push it; that push publishes the
+site:
+
+```sh
+git checkout main
+git merge --ff-only next
+git push origin main
+git checkout next
+```
+
+If the fast-forward fails, a correction on `main` is missing from
+`next`: merge `main` into `next`, push `next`, and fast-forward again.
+
+Before pushing a change to `main` or `next`:
 
 1. Run `just fullcycle` and confirm it passes and the build prints only
    the expected warnings listed above.

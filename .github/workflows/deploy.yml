@@ -1,13 +1,15 @@
 name: Deploy
 
 # Runs the full quality cycle (`just fullcycle`, which ends with the site
-# build) on every push and pull request, and publishes the site to
-# GitHub Pages from `main`. The Pages site serves https://docs.torchsnap.app
+# build) on pushes to `main` and `next` and on pull requests, and
+# publishes the site to GitHub Pages from `main`. `next` holds the
+# documentation of unreleased changes, so it is checked but never
+# published (ADR 0003). The Pages site serves https://docs.torchsnap.app
 # through the custom domain set in the repository's Pages settings.
 
 on:
   push:
-    branches: [main]
+    branches: [main, next]
   pull_request:
   workflow_dispatch:
 
