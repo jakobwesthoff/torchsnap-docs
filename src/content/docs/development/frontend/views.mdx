@@ -49,7 +49,7 @@ interface GadgetViewProps {
 |---|---|
 | `results` | The `ScoredEntry` list from the `ViewResponse`. Empty for full-takeover views. |
 | `data` | The opaque JSON payload from `ViewResponse.data`, already parsed. |
-| `query` | The current search query with the matched prefix already stripped. |
+| `query` | The current search query with the matched prefix already stripped. While the search for text that no longer starts with `matchedPrefix` runs, it is still the query of this view's own search. |
 | `matchedPrefix` | The prefix that triggered this view (e.g. `"="` for the calculator). |
 
 ### InlineViewProps
@@ -68,7 +68,7 @@ interface InlineViewProps {
 | Prop | Description |
 |---|---|
 | `data` | The opaque JSON payload from `ViewResponse.data`, already parsed. |
-| `query` | The current search query with the matched prefix already stripped. |
+| `query` | The current search query with the matched prefix already stripped. While the search for text that no longer starts with `matchedPrefix` runs, it is still the query of this view's own search. |
 | `matchedPrefix` | The prefix that triggered this view. |
 | `selected` | Whether the inline view currently has focus (index 0 in the result list). |
 
